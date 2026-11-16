@@ -1,6 +1,7 @@
-import { BADGES } from '../constants/filters.js'
+import { BADGES } from '../constants/filters.ts'
+import type { Product } from '../types.ts'
 
-export const products = [
+export const products: Product[] = [
   { id: 1, sku: 'SB-001', title: 'Штукатурка гипсовая, 30 кг', categoryId: 'dry-mixes', brand: 'СТАРАТЕЛИ', priceCents: 1890, oldPriceCents: 2240, rating: 4.9, reviews: 128, image: 'photo-1581092160562-40aa08e78837', badge: BADGES.BESTSELLER, inStock: true },
   { id: 2, sku: 'SB-002', title: 'Кирпич керамический полнотелый', categoryId: 'bricks-blocks', brand: 'КЕРАМИН', priceCents: 148, oldPriceCents: 172, rating: 4.8, reviews: 86, image: 'photo-1504307651254-35680f356dfd', badge: BADGES.VALUE, inStock: true },
   { id: 3, sku: 'SB-003', title: 'Утеплитель минеральный, 50 мм', categoryId: 'insulation', brand: 'ISOVER', priceCents: 3460, oldPriceCents: 3990, rating: 4.9, reviews: 64, image: 'photo-1621905251918-48416bd8575a', badge: BADGES.BESTSELLER, inStock: true },

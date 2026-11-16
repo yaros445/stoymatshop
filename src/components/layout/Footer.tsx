@@ -1,6 +1,7 @@
-import { contacts } from '../../data/contacts.js'
-import { Icon } from '../ui/Icon.jsx'
-import { Logo } from './Logo.jsx'
+import { Link } from 'react-router-dom'
+import { contacts } from '../../data/contacts.ts'
+import { Icon } from '../ui/Icon.tsx'
+import { Logo } from './Logo.tsx'
 
 export function Footer() {
   return (
@@ -19,10 +20,10 @@ export function Footer() {
         </div>
         <div className="footer-column">
           <strong>Покупателям</strong>
-          <a href="#catalog">Каталог товаров</a>
-          <a href="#delivery" id="delivery">Доставка и оплата</a>
-          <a href="#calculator">Калькулятор материалов</a>
-          <a href="#reviews">Отзывы клиентов</a>
+          <Link to="/catalog">Каталог товаров</Link>
+          <Link to="/delivery">Доставка и оплата</Link>
+          <Link to="/calculator">Калькулятор материалов</Link>
+          <Link to="/reviews">Отзывы клиентов</Link>
         </div>
         <div className="footer-column">
           <strong>Контакты</strong>

@@ -1,5 +1,5 @@
-import { benefits } from '../../data/benefits.js'
-import { Icon } from '../ui/Icon.jsx'
+import { benefits } from '../../data/benefits.ts'
+import { Icon } from '../ui/Icon.tsx'
 
 export function BenefitsSection() {
   return (

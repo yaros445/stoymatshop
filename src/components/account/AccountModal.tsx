@@ -1,9 +1,19 @@
 import { useState } from 'react'
-import { createId, hashPassword, saveDemoData } from './demoAccountStorage.js'
-import { formatPrice } from '../../utils/formatPrice.js'
-import { Icon } from '../ui/Icon.jsx'
+import { createId, hashPassword, saveDemoData } from './demoAccountStorage.ts'
+import { formatPrice } from '../../utils/formatPrice.ts'
+import { Icon } from '../ui/Icon.tsx'
+import type { FormEvent } from 'react'
+import type { AccountMode, DemoData } from '../../types.ts'
 
-export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDataChange }) {
+interface AccountModalProps {
+  demoData: DemoData
+  isOpen: boolean
+  initialMode: AccountMode
+  onClose: () => void
+  onDemoDataChange: (data: DemoData) => void
+}
+
+export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDataChange }: AccountModalProps) {
   const [mode, setMode] = useState(initialMode)
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
@@ -11,7 +21,7 @@ export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDat
   const currentUser = demoData.users.find((user) => user.id === demoData.currentUserId) || null
   const userOrders = currentUser ? demoData.orders.filter((order) => order.userId === currentUser.id) : []
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setAuthError('')
     setAuthBusy(true)
@@ -114,14 +124,14 @@ export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDat
             <p>{mode === 'register' ? 'Зарегистрируйтесь, чтобы сохранять историю заказов в этом браузере.' : 'Войдите, чтобы видеть историю оформленных заказов.'}</p>
             <form onSubmit={handleSubmit}>
               <label>Email<input name="email" type="email" autoComplete="email" required /></label>
-              {mode === 'register' && <label>Имя<input name="name" type="text" autoComplete="name" minLength="2" required /></label>}
+              {mode === 'register' && <label>Имя<input name="name" type="text" autoComplete="name" minLength={2} required /></label>}
               <label>
                 Пароль
                 <input
                   name="password"
                   type="password"
                   autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                  minLength="8"
+                  minLength={8}
                   required
                 />
               </label>

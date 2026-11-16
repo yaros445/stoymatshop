@@ -1,7 +1,8 @@
-import { Icon } from '../ui/Icon.jsx'
+import { Icon } from '../ui/Icon.tsx'
+import type { FormEvent } from 'react'
 
 export function NewsletterSection() {
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     event.currentTarget.reset()
   }

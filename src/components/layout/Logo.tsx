@@ -1,8 +1,14 @@
-export function Logo({ footer = false }) {
+import { Link } from 'react-router-dom'
+
+interface LogoProps {
+  footer?: boolean
+}
+
+export function Logo({ footer = false }: LogoProps) {
   return (
-    <a
+    <Link
       className={`brand-mark${footer ? ' footer-brand' : ''}`}
-      href="#home"
+      to="/catalog"
       aria-label="СтройБаза, на главную"
     >
       <span className="brand-symbol">
@@ -16,6 +22,6 @@ export function Logo({ footer = false }) {
         </span>
         <small>МАТЕРИАЛЫ ДЛЯ ДЕЛА</small>
       </span>
-    </a>
+    </Link>
   )
 }

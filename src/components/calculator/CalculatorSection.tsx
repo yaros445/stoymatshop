@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { calculatePlaster } from '../../utils/storefront.js'
-import { Icon } from '../ui/Icon.jsx'
+import type { Dispatch, SetStateAction } from 'react'
+import { Link } from 'react-router-dom'
+import { calculatePlaster } from '../../utils/storefront.ts'
+import { Icon } from '../ui/Icon.tsx'
 
-export function CalculatorSection({ onChooseMaterials }) {
+interface CalculatorSectionProps {
+  onChooseMaterials: () => void
+}
+
+export function CalculatorSection({ onChooseMaterials }: CalculatorSectionProps) {
   const [width, setWidth] = useState(6)
   const [height, setHeight] = useState(2.7)
   const { area, bags } = calculatePlaster(width, height)
 
-  function updateDimension(setDimension, value) {
+  function updateDimension(setDimension: Dispatch<SetStateAction<number>>, value: string) {
     setDimension(Math.max(0, Number(value) || 0))
   }
 
@@ -72,13 +78,13 @@ export function CalculatorSection({ onChooseMaterials }) {
               <strong>{bags} <span>мешков</span></strong>
             </div>
           </div>
-          <a
+          <Link
             className="button button-primary calculator-button"
-            href="#catalog"
+            to="/catalog"
             onClick={onChooseMaterials}
           >
             Подобрать материалы <Icon name="arrow" size={17} />
-          </a>
+          </Link>
           <small className="calculator-disclaimer">
             Ориентировочный расчёт. Точный расход зависит от состояния поверхности.
           </small>

@@ -1,8 +1,19 @@
 import { useReducer } from 'react'
-import { ALL_BRANDS, ALL_CATEGORIES, TABS } from '../../constants/filters.js'
-import { MAX_PRICE_CENTS } from '../../data/products.js'
+import { ALL_BRANDS, ALL_CATEGORIES, TABS } from '../../constants/filters.ts'
+import { MAX_PRICE_CENTS } from '../../data/products.ts'
+import type { CatalogFilters } from '../../types.ts'
 
-export const initialCatalogFilters = {
+export type CatalogFilterAction =
+  | { type: 'reset' }
+  | { type: 'setSearch'; value: string }
+  | { type: 'setCategory'; value: string }
+  | { type: 'setTab'; value: string }
+  | { type: 'setBrand'; value: string }
+  | { type: 'setMaxPrice'; value: number }
+  | { type: 'toggleInStock' }
+  | { type: 'toggleFavorites' }
+
+export const initialCatalogFilters: CatalogFilters = {
   search: '',
   category: ALL_CATEGORIES,
   tab: TABS.ALL,
@@ -12,7 +23,7 @@ export const initialCatalogFilters = {
   showFavorites: false,
 }
 
-export function catalogFiltersReducer(state, action) {
+export function catalogFiltersReducer(state: CatalogFilters, action: CatalogFilterAction): CatalogFilters {
   switch (action.type) {
     case 'reset':
       return initialCatalogFilters

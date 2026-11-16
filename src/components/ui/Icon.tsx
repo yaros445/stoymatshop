@@ -1,4 +1,7 @@
-const paths = {
+import type { ReactNode } from 'react'
+import type { IconName } from '../../types.ts'
+
+const paths: Record<IconName, ReactNode> = {
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
     phone: <><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 3a2 2 0 0 1-.6 1.8L7.7 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 1.8-.6l3 .5a2 2 0 0 1 1.2 2.5Z" /></>,
     heart: <><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></>,
@@ -31,8 +34,12 @@ const paths = {
     check: <><path d="m5 12 4 4L19 6" /></>,
   }
 
-export function Icon({ name, size = 20, className = '' }) {
+interface IconProps {
+  name: IconName
+  size?: number
+  className?: string
+}
 
-
+export function Icon({ name, size = 20, className = '' }: IconProps) {
   return <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.boxes}</svg>
 }

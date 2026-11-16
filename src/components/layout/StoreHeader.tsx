@@ -1,6 +1,25 @@
-import { contacts } from '../../data/contacts.js'
-import { Icon } from '../ui/Icon.jsx'
-import { Logo } from './Logo.jsx'
+import { Link, NavLink } from 'react-router-dom'
+import { contacts } from '../../data/contacts.ts'
+import { Icon } from '../ui/Icon.tsx'
+import { Logo } from './Logo.tsx'
+import type { Category } from '../../types.ts'
+
+interface StoreHeaderProps {
+  categories: Category[]
+  categoriesOpen: boolean
+  cartCount: number
+  favoritesCount: number
+  accountLabel: string
+  accountAriaLabel: string
+  onChooseCategory: (categoryId: string) => void
+  onOpenAccount: () => void
+  onOpenCart: () => void
+  onSearchChange: (value: string) => void
+  onToggleCategories: () => void
+  onToggleFavorites: () => void
+  search: string
+  showFavorites: boolean
+}
 
 export function StoreHeader({
   categories,
@@ -17,15 +36,15 @@ export function StoreHeader({
   onToggleFavorites,
   search,
   showFavorites,
-}) {
+}: StoreHeaderProps) {
   return (
     <>
       <div className="topline">
         <div className="container topline-inner">
           <span>Стройматериалы с заботой о вашем проекте</span>
           <div>
-            <a href="#delivery">Доставка и оплата</a>
-            <a href="#contacts">Контакты</a>
+            <Link to="/delivery">Доставка и оплата</Link>
+            <Link to="/delivery#contacts">Контакты</Link>
             <a className="mobile-phone" href={contacts.phoneHref}>{contacts.phone}</a>
             <span><Icon name="location" size={15} /> {contacts.city}</span>
           </div>
@@ -80,10 +99,10 @@ export function StoreHeader({
               <Icon name="menu" size={19} /> Каталог товаров <Icon name="chevron" size={15} />
             </button>
             <nav className="main-nav" aria-label="Основная навигация">
-              <a href="#catalog">Каталог</a>
-              <a href="#calculator">Калькулятор</a>
-              <a href="#benefits">О компании</a>
-              <a href="#reviews">Отзывы</a>
+              <NavLink to="/catalog">Каталог</NavLink>
+              <NavLink to="/calculator">Калькулятор</NavLink>
+              <NavLink to="/about">О компании</NavLink>
+              <NavLink to="/reviews">Отзывы</NavLink>
             </nav>
             <span className="nav-promo"><span /> Доставка от 300 BYN — бесплатно</span>
           </div>
@@ -91,7 +110,7 @@ export function StoreHeader({
             <div className="category-dropdown">
               <div className="container category-dropdown-inner">
                 {categories.map((category) => (
-                  <button type="button" key={category.title} onClick={() => onChooseCategory(category.title)}>
+                  <button type="button" key={category.id} onClick={() => onChooseCategory(category.id)}>
                     <Icon name={category.icon} size={19} />
                     {category.title}
                     <Icon name="arrow" size={15} />

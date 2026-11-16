@@ -1,10 +1,31 @@
-import { ALL_BRANDS, ALL_CATEGORIES, BADGES, TABS } from '../../constants/filters.js'
-import { categories } from '../../data/categories.js'
-import { MAX_PRICE_CENTS, MIN_PRICE_CENTS, productBrands, products } from '../../data/products.js'
-import { formatPriceCents } from '../../utils/formatPrice.js'
-import { getImageUrl } from '../../utils/image.js'
-import { pluralizeProducts } from '../../utils/pluralize.js'
-import { Icon } from '../ui/Icon.jsx'
+import { ALL_BRANDS, ALL_CATEGORIES, BADGES, TABS } from '../../constants/filters.ts'
+import { categories } from '../../data/categories.ts'
+import { MAX_PRICE_CENTS, MIN_PRICE_CENTS, productBrands, products } from '../../data/products.ts'
+import { formatPriceCents } from '../../utils/formatPrice.ts'
+import { getImageUrl } from '../../utils/image.ts'
+import { pluralizeProducts } from '../../utils/pluralize.ts'
+import { Icon } from '../ui/Icon.tsx'
+import type { Cart } from '../../types.ts'
+import type { CatalogFilterAction } from '../../features/catalog/useCatalogFilters.ts'
+import type { Dispatch } from 'react'
+
+type CatalogProduct = (typeof products)[number]
+
+interface CatalogSectionProps {
+  activeCategory: string
+  activeTab: string
+  brand: string
+  cart: Cart
+  dispatchFilters: Dispatch<CatalogFilterAction>
+  favorites: number[]
+  filteredProducts: CatalogProduct[]
+  inStockOnly: boolean
+  maxPriceCents: number
+  onAddToCart: (id: number) => void
+  onResetFilters: () => void
+  onToggleFavorite: (id: number) => void
+  showFavorites: boolean
+}
 
 export function CatalogSection({
   activeCategory,
@@ -20,7 +41,7 @@ export function CatalogSection({
   onResetFilters,
   onToggleFavorite,
   showFavorites,
-}) {
+}: CatalogSectionProps) {
   return (
     <section className="products-section section-space" id="catalog">
       <div className="container">

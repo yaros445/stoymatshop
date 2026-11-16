@@ -1,7 +1,7 @@
-import { contacts } from '../../data/contacts.js'
-import { partners } from '../../data/partners.js'
-import { ratingSummary, reviews } from '../../data/reviews.js'
-import { Icon } from '../ui/Icon.jsx'
+import { contacts } from '../../data/contacts.ts'
+import { partners } from '../../data/partners.ts'
+import { ratingSummary, reviews } from '../../data/reviews.ts'
+import { Icon } from '../ui/Icon.tsx'
 
 export function ReviewsSection() {
   return (

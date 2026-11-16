@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ALL_CATEGORIES, TABS } from '../../constants/filters.js'
+import { ALL_CATEGORIES, TABS } from '../../constants/filters.ts'
 import {
   catalogFiltersReducer,
   initialCatalogFilters,
-} from './useCatalogFilters.js'
+} from './useCatalogFilters.ts'
 
 test('reset restores every filter to its initial value', () => {
   const activeFilters = {

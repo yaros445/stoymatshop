@@ -1,9 +1,24 @@
 import { useState } from 'react'
-import { createId, saveDemoData } from '../account/demoAccountStorage.js'
-import { formatPriceCents } from '../../utils/formatPrice.js'
-import { pluralizeProducts } from '../../utils/pluralize.js'
-import { Icon } from '../ui/Icon.jsx'
-import { OrderConfirmationModal } from './OrderConfirmationModal.jsx'
+import { createId, saveDemoData } from '../account/demoAccountStorage.ts'
+import { formatPriceCents } from '../../utils/formatPrice.ts'
+import { pluralizeProducts } from '../../utils/pluralize.ts'
+import { Icon } from '../ui/Icon.tsx'
+import { OrderConfirmationModal } from './OrderConfirmationModal.tsx'
+import type { FormEvent } from 'react'
+import type { Cart, CartProduct, DemoData, DemoOrder, DemoUser } from '../../types.ts'
+
+interface CheckoutModalProps {
+  cart: Cart
+  cartCount: number
+  cartTotalCents: number
+  currentUser: DemoUser | null
+  demoData: DemoData
+  isOpen: boolean
+  onCartClear: () => void
+  onClose: () => void
+  onDemoDataChange: (data: DemoData) => void
+  products: CartProduct[]
+}
 
 export function CheckoutModal({
   cart,
@@ -16,9 +31,9 @@ export function CheckoutModal({
   onClose,
   onDemoDataChange,
   products,
-}) {
+}: CheckoutModalProps) {
   const [error, setError] = useState('')
-  const [completedOrder, setCompletedOrder] = useState(null)
+  const [completedOrder, setCompletedOrder] = useState<DemoOrder | null>(null)
   const productsById = new Map(products.map((product) => [product.id, product]))
 
   function closeCheckout() {
@@ -26,7 +41,7 @@ export function CheckoutModal({
     onClose()
   }
 
-  function handleSubmit(event) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
 
@@ -44,16 +59,16 @@ export function CheckoutModal({
     }
 
     const cartEntries = Object.entries(cart).filter(([, quantity]) => quantity > 0)
-    const items = cartEntries.map(([productId, quantity]) => {
+    const items = cartEntries.flatMap(([productId, quantity]) => {
       const product = productsById.get(Number(productId))
-      if (!product) return null
-      return {
+      if (!product) return []
+      return [{
         id: product.id,
         title: product.title,
         quantity,
         price: Math.round(product.price * 100) / 100,
-      }
-    }).filter(Boolean)
+      }]
+    })
 
     if (items.length === 0) {
       setError('Корзина пуста. Добавьте товары и попробуйте снова.')
@@ -72,7 +87,7 @@ export function CheckoutModal({
         name,
         phone,
         address,
-        comment: String(formData.get('comment')).trim(),
+        comment: String(formData.get('comment') ?? '').trim(),
         payment: 'При получении',
         items,
         total: cartTotalCents / 100,
@@ -106,10 +121,10 @@ export function CheckoutModal({
               <strong>{formatPriceCents(cartTotalCents)}</strong>
             </div>
             <form onSubmit={handleSubmit}>
-              <label>Имя<input name="name" type="text" autoComplete="name" defaultValue={currentUser?.name ?? ''} minLength="2" required /></label>
+              <label>Имя<input name="name" type="text" autoComplete="name" defaultValue={currentUser?.name ?? ''} minLength={2} required /></label>
               <label>Телефон<input name="phone" type="tel" autoComplete="tel" placeholder="+375 (__) ___-__-__" required /></label>
               <label>Адрес доставки<input name="address" type="text" autoComplete="street-address" placeholder="Город, улица, дом" required /></label>
-              <label>Комментарий к заказу<textarea name="comment" rows="2" placeholder="Подъезд, удобное время и другие детали" /></label>
+              <label>Комментарий к заказу<textarea name="comment" rows={2} placeholder="Подъезд, удобное время и другие детали" /></label>
               <div className="payment-note">
                 <strong>Оплата при получении</strong>
                 <span>Наличными или картой при доставке</span>

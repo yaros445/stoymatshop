@@ -1,4 +1,13 @@
-export const benefits = [
+import type { IconName } from '../types.ts'
+
+interface Benefit {
+  icon: IconName
+  number: string
+  title: string
+  text: string
+}
+
+export const benefits: Benefit[] = [
   {
     icon: 'truck',
     number: '01',

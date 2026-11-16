@@ -1,7 +1,13 @@
-import { formatPrice } from '../../utils/formatPrice.js'
-import { Icon } from '../ui/Icon.jsx'
+import { formatPrice } from '../../utils/formatPrice.ts'
+import { Icon } from '../ui/Icon.tsx'
+import type { DemoOrder } from '../../types.ts'
 
-export function OrderConfirmationModal({ order, onClose }) {
+interface OrderConfirmationModalProps {
+  order: DemoOrder | null
+  onClose: () => void
+}
+
+export function OrderConfirmationModal({ order, onClose }: OrderConfirmationModalProps) {
   if (!order) return null
 
   return (

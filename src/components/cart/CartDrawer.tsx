@@ -1,6 +1,18 @@
-import { formatPrice } from '../../utils/formatPrice.js'
-import { getImageUrl } from '../../utils/image.js'
-import { Icon } from '../ui/Icon.jsx'
+import { formatPrice } from '../../utils/formatPrice.ts'
+import { getImageUrl } from '../../utils/image.ts'
+import { Icon } from '../ui/Icon.tsx'
+import type { Cart, CartProduct } from '../../types.ts'
+
+interface CartDrawerProps {
+  cart: Cart
+  cartCount: number
+  cartTotal: number
+  isOpen: boolean
+  products: CartProduct[]
+  onChangeQuantity: (id: number, amount: number) => void
+  onCheckout: () => void
+  onClose: () => void
+}
 
 export function CartDrawer({
   cart,
@@ -11,7 +23,7 @@ export function CartDrawer({
   onChangeQuantity,
   onCheckout,
   onClose,
-}) {
+}: CartDrawerProps) {
   if (!isOpen) return null
 
   return (

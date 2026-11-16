@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ALL_CATEGORIES, ALL_BRANDS, TABS } from '../constants/filters.js'
-import { categories, getProductCountByCategory } from '../data/categories.js'
-import { products as catalogProducts } from '../data/products.js'
-import { calculatePlaster, filterProducts } from './storefront.js'
-import { formatPrice, formatPriceCents } from './formatPrice.js'
-import { getImageUrl } from './image.js'
-import { sumCartTotalCents } from './money.js'
-import { pluralizeProducts } from './pluralize.js'
+import { ALL_CATEGORIES, ALL_BRANDS, TABS } from '../constants/filters.ts'
+import { categories, getProductCountByCategory } from '../data/categories.ts'
+import { products as catalogProducts } from '../data/products.ts'
+import { calculatePlaster, filterProducts } from './storefront.ts'
+import { formatPrice, formatPriceCents } from './formatPrice.ts'
+import { getImageUrl } from './image.ts'
+import { sumCartTotalCents } from './money.ts'
+import { pluralizeProducts } from './pluralize.ts'
 
 const products = [
   { id: 1, title: 'Штукатурка', categoryId: 'dry-mixes', brand: 'A', sku: 'A-1', priceCents: 1890, badge: 'Хит продаж', inStock: true },

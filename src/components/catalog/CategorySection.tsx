@@ -1,6 +1,13 @@
-import { Icon } from '../ui/Icon.jsx'
+import { Icon } from '../ui/Icon.tsx'
+import type { Category } from '../../types.ts'
 
-export function CategorySection({ categories, onShowAll, onSelectCategory }) {
+interface CategorySectionProps {
+  categories: Category[]
+  onShowAll: () => void
+  onSelectCategory: (categoryId: string) => void
+}
+
+export function CategorySection({ categories, onShowAll, onSelectCategory }: CategorySectionProps) {
   return (
     <section className="categories-section section-space" id="categories">
       <div className="container">
@@ -18,8 +25,8 @@ export function CategorySection({ categories, onShowAll, onSelectCategory }) {
             <button
               className="category-tile"
               type="button"
-              key={category.title}
-              onClick={() => onSelectCategory(category.title)}
+              key={category.id}
+              onClick={() => onSelectCategory(category.id)}
             >
               <span className={`category-icon category-tone-${index % 5}`}>
                 <Icon name={category.icon} size={25} />
