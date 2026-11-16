@@ -11,6 +11,14 @@ npm run dev
 
 Для production-сборки выполните `npm run build`.
 
+## Проверки
+
+```sh
+npm run test
+npm run lint
+npm run build
+```
+
 ## Демо-возможности
 
 - Регистрация и вход по email и паролю.

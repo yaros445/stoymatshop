@@ -15,8 +15,8 @@
 .brand-symbol span:nth-child(2) { height: 22px; }
 .brand-symbol span:nth-child(3) { height: 12px; }
 .brand-name { display: flex; flex-direction: column; font-size: 22px; font-weight: 850; line-height: .96; letter-spacing: 0; }
-.brand-word { display: block; white-space: nowrap; }
-.brand-word > span { color: var(--orange); }
+.brand-name > .brand-word { display: block; margin: 0; white-space: nowrap; }
+.brand-word > span { margin: 0; color: var(--orange); }
 .brand-name small { margin-top: 6px; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
 .search-box { height: 43px; flex: 1; min-width: 155px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 1px solid #e3e7e8; border-radius: 3px; color: #77838b; background: #fbfcfc; }
 .search-box:focus-within { border-color: #b6c0c3; background: #fff; }
@@ -293,36 +293,14 @@
 .drawer-total > span { color: #77848a; font-size: 10px; }
 .drawer-total > strong { color: #26363e; font-size: 22px; }
 .drawer-total > small { color: #909b9e; text-align: center; font-size: 8px; }
-.account-modal { position: relative; width: min(410px, calc(100% - 32px)); max-height: min(90vh, 760px); overflow-y: auto; align-self: center; margin: auto; padding: 30px; background: #fff; animation: rise-in .22s ease-out; }
-.checkout-modal { width: min(500px, calc(100% - 32px)); }
+.account-modal { position: relative; width: min(410px, calc(100% - 32px)); align-self: center; margin: auto; padding: 30px; background: #fff; animation: rise-in .22s ease-out; }
 .modal-close { position: absolute; top: 14px; right: 14px; }
 .modal-icon { display: grid; width: 44px; height: 44px; margin-bottom: 17px; place-items: center; color: var(--orange); background: #fbf2eb; }
 .account-modal > p { margin-top: 8px; color: #79878c; font-size: 11px; line-height: 1.7; }
 .account-modal form { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-.account-modal form label { display: flex; flex-direction: column; gap: 6px; color: #536168; font-size: 10px; font-weight: 700; }
-.account-modal form input, .account-modal form textarea { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid #dfe4e3; border-radius: 2px; color: var(--ink); background: #fff; font-size: 12px; font-weight: 400; resize: vertical; }
-.account-modal form textarea { min-height: 66px; }
+.account-modal form input { height: 42px; font-size: 12px; }
 .account-modal form .button { width: 100%; }
 .account-modal > small { display: block; margin-top: 10px; color: #939da0; font-size: 8px; line-height: 1.6; }
-.account-modal form .button:disabled { cursor: wait; opacity: .7; }
-.auth-switch { width: 100%; justify-content: center; margin-top: 14px; border: 0; background: transparent; font-size: 10px; cursor: pointer; }
-.form-error { margin: 0; color: #b94435 !important; font-size: 10px !important; }
-.profile-orders { display: flex; flex-direction: column; gap: 10px; margin-top: 19px; }
-.profile-orders > strong { color: #34444c; font-size: 12px; }
-.profile-orders > p { margin: 0; color: #849095; font-size: 10px; line-height: 1.6; }
-.profile-orders article { display: grid; grid-template-columns: 1fr auto; gap: 7px; padding: 11px; border: 1px solid var(--line); }
-.profile-orders article > div { display: flex; flex-direction: column; gap: 3px; }
-.profile-orders article > div strong, .profile-orders article > b { color: #34444c; font-size: 10px; }
-.profile-orders article > div span, .profile-orders article > small { color: #839096; font-size: 9px; }
-.profile-orders article > small { grid-column: 1 / -1; line-height: 1.5; overflow-wrap: anywhere; }
-.profile-signout { width: 100%; margin-top: 16px; }
-.checkout-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; padding: 12px; background: #f5f6f4; }
-.checkout-summary span { color: #78858a; font-size: 10px; }
-.checkout-summary strong { color: #273740; font-size: 14px; white-space: nowrap; }
-.payment-note { display: flex; flex-direction: column; gap: 4px; padding: 11px; border: 1px solid #e8eae8; }
-.payment-note strong { color: #35454d; font-size: 10px; }
-.payment-note span { color: #839095; font-size: 9px; }
-.order-success > .button { width: 100%; margin-top: 19px; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide-in { from { transform: translateX(18px); } to { transform: translateX(0); } }

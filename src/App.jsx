@@ -1,4 +1,11 @@
 import { useMemo, useState } from 'react'
+import { AccountModal } from './components/account/AccountModal.jsx'
+import { CategorySection } from './components/catalog/CategorySection.jsx'
+import { CartDrawer } from './components/cart/CartDrawer.jsx'
+import { CheckoutModal } from './components/checkout/CheckoutModal.jsx'
+import { readDemoData } from './components/account/demoAccountStorage.js'
+import { Footer } from './components/layout/Footer.jsx'
+import { StoreHeader } from './components/layout/StoreHeader.jsx'
 import './App.css'
 
 const categories = [
@@ -24,45 +31,6 @@ const products = [
   { id: 7, title: 'Шуруповёрт аккумуляторный, 18 В', category: 'Инструмент', brand: 'DEWALT', price: 289.0, oldPrice: 329.0, rating: '5.0', reviews: 39, image: 'photo-1504148455328-c376907d081c', badge: 'Новинка' },
   { id: 8, title: 'Металлочерепица, модульная', category: 'Кровля', brand: 'GRAND LINE', price: 31.7, oldPrice: 36.0, rating: '4.8', reviews: 91, image: 'photo-1635424710928-ff6d33f8ac8b', badge: 'Хит продаж' },
 ]
-
-const demoDataKey = 'stroybaza.demo.data'
-const emptyDemoData = { users: [], currentUserId: null, orders: [] }
-
-function readDemoData() {
-  try {
-    const storedData = localStorage.getItem(demoDataKey)
-    if (!storedData) return emptyDemoData
-
-    const parsedData = JSON.parse(storedData)
-    if (!Array.isArray(parsedData.users) || !Array.isArray(parsedData.orders)) {
-      throw new Error('Некорректный формат данных')
-    }
-
-    return {
-      users: parsedData.users,
-      currentUserId: parsedData.currentUserId ?? null,
-      orders: parsedData.orders,
-    }
-  } catch (error) {
-    console.error('Не удалось загрузить демо-данные магазина:', error)
-    return emptyDemoData
-  }
-}
-
-async function hashPassword(password, salt) {
-  if (!globalThis.crypto?.subtle) {
-    throw new Error('Для входа нужен современный браузер с поддержкой Web Crypto.')
-  }
-
-  const key = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
-  const digest = await globalThis.crypto.subtle.deriveBits({
-    name: 'PBKDF2',
-    salt: new TextEncoder().encode(salt),
-    iterations: 150000,
-    hash: 'SHA-256',
-  }, key, 256)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
 
 const advantages = [
   { icon: 'truck', title: 'Доставим завтра', text: 'По Минску и всей Беларуси' },
@@ -119,19 +87,13 @@ function App() {
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [accountMode, setAccountMode] = useState('login')
-  const [authError, setAuthError] = useState('')
-  const [authBusy, setAuthBusy] = useState(false)
   const [demoData, setDemoData] = useState(readDemoData)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [checkoutError, setCheckoutError] = useState('')
-  const [orderComplete, setOrderComplete] = useState(null)
   const [categoriesOpen, setCategoriesOpen] = useState(false)
   const [wallWidth, setWallWidth] = useState(6)
   const [wallHeight, setWallHeight] = useState(2.7)
 
   const currentUser = demoData.users.find((user) => user.id === demoData.currentUserId) || null
-  const userOrders = currentUser ? demoData.orders.filter((order) => order.userId === currentUser.id) : []
 
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = `${product.title} ${product.category} ${product.brand}`.toLowerCase().includes(search.toLowerCase())
@@ -139,14 +101,14 @@ function App() {
     const matchesBrand = brand === 'Все бренды' || product.brand === brand
     const matchesPrice = product.price <= maxPrice
     const matchesStock = !inStockOnly || product.id !== 8
+    const matchesFavorites = !showFavorites || favorites.includes(product.id)
     const matchesTab = activeTab === 'Новинки' ? product.badge === 'Новинка' : true
-    return showFavorites
-      ? favorites.includes(product.id)
-      : matchesSearch && matchesCategory && matchesBrand && matchesPrice && matchesStock && matchesTab
+    return matchesSearch && matchesCategory && matchesBrand && matchesPrice && matchesStock && matchesFavorites && matchesTab
   }), [activeCategory, activeTab, brand, favorites, inStockOnly, maxPrice, search, showFavorites])
 
   const cartCount = Object.values(cart).reduce((total, quantity) => total + quantity, 0)
-  const cartTotal = products.reduce((total, product) => total + product.price * (cart[product.id] || 0), 0)
+  const cartTotalCents = products.reduce((total, product) => total + Math.round(product.price * 100) * (cart[product.id] || 0), 0)
+  const cartTotal = cartTotalCents / 100
   const wallArea = Math.max(0, Number(wallWidth) * Number(wallHeight))
   const bagCount = Math.ceil(wallArea / 3.5)
 
@@ -172,141 +134,48 @@ function App() {
     document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  function toggleFavorites() {
-    setShowFavorites((value) => !value)
-    setActiveCategory('Все товары')
-    document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  function saveDemoData(nextData) {
-    localStorage.setItem(demoDataKey, JSON.stringify(nextData))
-    setDemoData(nextData)
-  }
-
-  async function handleAuth(event) {
-    event.preventDefault()
-    setAuthError('')
-    setAuthBusy(true)
-
-    const formData = new FormData(event.currentTarget)
-    const email = String(formData.get('email')).trim().toLowerCase()
-    const password = String(formData.get('password'))
-
-    try {
-      let nextData
-
-      if (accountMode === 'register') {
-        const name = String(formData.get('name')).trim()
-        if (demoData.users.some((user) => user.email === email)) {
-          setAuthError('Аккаунт с таким email уже существует. Войдите в него.')
-          return
-        }
-
-        const passwordSalt = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('')
-        const passwordHash = await hashPassword(password, passwordSalt)
-        const user = { id: crypto.randomUUID(), name, email, passwordSalt, passwordHash }
-        nextData = {
-          ...demoData,
-          users: [...demoData.users, user],
-          currentUserId: user.id,
-        }
-      } else {
-        const user = demoData.users.find((candidate) => candidate.email === email)
-        if (!user || user.passwordHash !== await hashPassword(password, user.passwordSalt)) {
-          setAuthError('Проверьте email и пароль.')
-          return
-        }
-
-        nextData = { ...demoData, currentUserId: user.id }
-      }
-
-      saveDemoData(nextData)
-      setAccountMode('profile')
-      setAuthError('')
-    } catch (error) {
-      console.error('Не удалось выполнить вход или регистрацию:', error)
-      setAuthError(error instanceof Error ? error.message : 'Не удалось сохранить данные. Попробуйте ещё раз.')
-    } finally {
-      setAuthBusy(false)
-    }
-  }
-
-  function signOut() {
-    try {
-      saveDemoData({ ...demoData, currentUserId: null })
-      setAccountMode('login')
-      setAuthError('')
-    } catch (error) {
-      console.error('Не удалось завершить сеанс:', error)
-      setAuthError('Не удалось завершить сеанс. Попробуйте ещё раз.')
-    }
-  }
-
-  function submitOrder(event) {
-    event.preventDefault()
-    setCheckoutError('')
-
-    const formData = new FormData(event.currentTarget)
-    const items = products
-      .filter((product) => cart[product.id])
-      .map((product) => ({
-        id: product.id,
-        title: product.title,
-        quantity: cart[product.id],
-        price: product.price,
-      }))
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const order = {
-      id: `SB-${Date.now().toString(36).toUpperCase()}`,
-      userId: currentUser?.id ?? null,
-      createdAt: new Date().toISOString(),
-      name: String(formData.get('name')).trim(),
-      phone: String(formData.get('phone')).trim(),
-      address: String(formData.get('address')).trim(),
-      comment: String(formData.get('comment')).trim(),
-      payment: 'При получении',
-      items,
-      total,
-    }
-
-    if (items.length === 0) {
-      setCheckoutError('Корзина пуста. Добавьте товары и попробуйте снова.')
-      return
-    }
-
-    try {
-      const nextData = { ...demoData, orders: [order, ...demoData.orders] }
-      saveDemoData(nextData)
-      setCart({})
-      setCheckoutOpen(false)
-      setOrderComplete(order)
-    } catch (error) {
-      console.error('Не удалось сохранить заказ:', error)
-      setCheckoutError('Не удалось сохранить заказ в этом браузере. Проверьте свободное место и попробуйте ещё раз.')
-    }
-  }
-
   return (
     <div className="storefront">
-      <div className="topline"><div className="container topline-inner"><span>Стройматериалы с заботой о вашем проекте</span><div><a href="#delivery">Доставка и оплата</a><a href="#contacts">Контакты</a><span><Icon name="location" size={15} /> Минск</span></div></div></div>
-      <header className="site-header">
-        <div className="container header-main">
-          <a className="brand-mark" href="#home" aria-label="СтройБаза, на главную"><span className="brand-symbol"><span /><span /><span /></span><span className="brand-name"><span className="brand-word">строй<span>база</span></span><small>МАТЕРИАЛЫ ДЛЯ ДЕЛА</small></span></a>
-          <div className="search-box"><Icon name="search" size={19} /><input aria-label="Поиск по товарам" placeholder="Найти материалы, бренд или артикул" value={search} onChange={(event) => { setSearch(event.target.value); setShowFavorites(false) }} /><kbd>⌘ K</kbd></div>
-          <a className="phone-block" href="tel:+375173090909"><Icon name="phone" size={18} /><span><strong>+375 (17) 309-09-09</strong><small>Ежедневно с 8:00 до 20:00</small></span></a>
-          <button className="icon-action account-action" type="button" aria-label={currentUser ? 'Личный кабинет' : 'Войти'} onClick={() => { setAccountMode(currentUser ? 'profile' : 'login'); setAuthError(''); setAccountOpen(true) }}><Icon name="user" size={21} /><span>{currentUser ? 'Профиль' : 'Войти'}</span></button>
-          <button className={`icon-action favorite-action ${showFavorites ? 'is-active' : ''}`} type="button" aria-label="Показать избранное" aria-pressed={showFavorites} onClick={toggleFavorites}><Icon name="heart" size={21} /><span>Избранное</span>{favorites.length > 0 && <b>{favorites.length}</b>}</button>
-          <button className="cart-action" type="button" onClick={() => setCartOpen(true)}><Icon name="cart" size={19} /><span>Корзина</span><b>{cartCount}</b></button>
-        </div>
-        <div className="nav-row"><div className="container nav-inner"><button className={`catalog-menu ${categoriesOpen ? 'is-open' : ''}`} type="button" onClick={() => setCategoriesOpen((value) => !value)}><Icon name="menu" size={19} /> Каталог товаров <Icon name="chevron" size={15} /></button><nav className="main-nav" aria-label="Основная навигация"><a href="#catalog">Каталог</a><a href="#calculator">Калькулятор</a><a href="#benefits">О компании</a><a href="#reviews">Отзывы</a></nav><span className="nav-promo"><span /> Доставка от 300 BYN — бесплатно</span></div>{categoriesOpen && <div className="category-dropdown"><div className="container category-dropdown-inner">{categories.map((category) => <button type="button" key={category.title} onClick={() => { chooseCategory(category.title); setCategoriesOpen(false) }}><Icon name={category.icon} size={19} />{category.title}<Icon name="arrow" size={15} /></button>)}</div></div>}</div>
-      </header>
+      <StoreHeader
+        accountAriaLabel={currentUser ? 'Личный кабинет' : 'Войти'}
+        accountLabel={currentUser ? 'Профиль' : 'Войти'}
+        categories={categories}
+        categoriesOpen={categoriesOpen}
+        cartCount={cartCount}
+        favoritesCount={favorites.length}
+        onChooseCategory={(categoryTitle) => {
+          chooseCategory(categoryTitle)
+          setCategoriesOpen(false)
+        }}
+        onOpenAccount={() => setAccountOpen(true)}
+        onOpenCart={() => setCartOpen(true)}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setShowFavorites(false)
+        }}
+        onToggleCategories={() => setCategoriesOpen((value) => !value)}
+        onToggleFavorites={() => {
+          setShowFavorites((value) => !value)
+          setActiveCategory('Все товары')
+          document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
+        }}
+        search={search}
+        showFavorites={showFavorites}
+      />
 
       <main id="home">
         <section className="hero-section"><div className="container hero-layout"><div className="hero-copy"><span className="eyebrow"><span /> СТРОИТЬ ПРОЩЕ, КОГДА ВСЁ РЯДОМ</span><h1>Стройматериалы<br />с доставкой <em>за 1 день</em></h1><p>Всё для строительства и ремонта — от фундамента до последнего штриха. Честные цены и доставка точно в срок.</p><div className="hero-buttons"><a className="button button-primary" href="#catalog">Перейти в каталог <Icon name="arrow" size={18} /></a><a className="button button-text" href="#calculator">Рассчитать материалы</a></div><div className="hero-proof"><div className="avatar-stack"><span>А</span><span>М</span><span>И</span><span>+</span></div><div><strong>4 800+</strong><small>проектов уже построено с нами</small></div><span className="hero-rating"><Icon name="star" size={14} /> 4,9 <small>из 5</small></span></div></div><div className="hero-visual"><img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=85" alt="Строительная площадка и возведение современного здания" /><div className="visual-caption"><span className="caption-dot" /><span><strong>Всё для стройки</strong><small>на одном складе в Минске</small></span><Icon name="arrow" size={19} /></div><div className="visual-stamp"><strong>15</strong><span>лет<br />на рынке</span></div></div></div><div className="container advantage-strip">{advantages.map((item) => <div className="advantage-item" key={item.title}><span className="advantage-icon"><Icon name={item.icon} size={22} /></span><span><strong>{item.title}</strong><small>{item.text}</small></span></div>)}</div></section>
 
-        <section className="categories-section section-space" id="categories"><div className="container"><div className="section-heading"><div><span className="eyebrow">ВЫБИРАЙТЕ СВОЁ</span><h2>Категории товаров</h2></div><button className="text-link" type="button" onClick={() => { setActiveCategory('Все товары'); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }) }}>Все категории <Icon name="arrow" size={17} /></button></div><div className="category-grid">{categories.map((category, index) => <button className="category-tile" type="button" key={category.title} onClick={() => chooseCategory(category.title)}><span className={`category-icon category-tone-${index % 5}`}><Icon name={category.icon} size={25} /></span><span className="category-label"><strong>{category.title}</strong><small>{category.count}</small></span><Icon className="category-arrow" name="arrow" size={16} /></button>)}</div></div></section>
+        <CategorySection
+          categories={categories}
+          onSelectCategory={chooseCategory}
+          onShowAll={() => {
+            setActiveCategory('Все товары')
+            document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
+          }}
+        />
 
-        <section className="products-section section-space" id="catalog"><div className="container"><div className="section-heading product-heading"><div><span className="eyebrow">ТОЛЬКО ПРОВЕРЕННОЕ</span><h2>{showFavorites ? 'Избранное' : activeCategory === 'Все товары' ? 'Выбор наших клиентов' : activeCategory}</h2></div><div className="product-tabs"><button className={activeTab === 'Хиты продаж' ? 'is-selected' : ''} type="button" onClick={() => setActiveTab('Хиты продаж')}>Хиты продаж</button><button className={activeTab === 'Новинки' ? 'is-selected' : ''} type="button" onClick={() => setActiveTab('Новинки')}>Новинки <span>NEW</span></button></div></div><div className="catalog-tools"><span>{filteredProducts.length} товаров</span><label className="brand-select">Бренд<select aria-label="Фильтр по бренду" value={brand} onChange={(event) => setBrand(event.target.value)}><option>Все бренды</option>{[...new Set(products.map((product) => product.brand))].map((name) => <option key={name}>{name}</option>)}</select><Icon name="chevron" size={14} /></label><label className="price-filter">До {maxPrice} BYN<input type="range" min="20" max="350" step="10" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} aria-label="Максимальная цена" /></label><label className="stock-filter"><input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} /><span className="custom-check"><Icon name="check" size={12} /></span> В наличии</label><button className="reset-filters" type="button" onClick={() => { setBrand('Все бренды'); setMaxPrice(350); setInStockOnly(false); setSearch(''); setShowFavorites(false); setActiveCategory('Все товары') }}>Сбросить</button></div><div className="product-grid">{filteredProducts.map((product) => <article className="product-card" key={product.id}><div className="product-image-wrap"><img src={`https://images.unsplash.com/${product.image}?auto=format&fit=crop&w=640&q=80`} alt={product.title} loading="lazy" /><span className={`product-badge ${product.badge === 'Новинка' ? 'badge-new' : ''}`}>{product.badge}</span><button className={`product-favorite ${favorites.includes(product.id) ? 'is-active' : ''}`} type="button" aria-label={favorites.includes(product.id) ? 'Убрать из избранного' : 'Добавить в избранное'} onClick={() => setFavorites((current) => current.includes(product.id) ? current.filter((id) => id !== product.id) : [...current, product.id])}><Icon name="heart" size={19} /></button></div><div className="product-info"><span className="product-brand">{product.brand}</span><h3>{product.title}</h3><div className="product-rating"><Icon name="star" size={14} /><strong>{product.rating}</strong><span>({product.reviews})</span><span className={`stock-label ${product.id === 8 ? 'stock-order' : ''}`}><i />{product.id === 8 ? 'Под заказ' : 'В наличии'}</span></div><div className="product-purchase"><div className="product-price"><strong>{product.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <small>BYN</small></strong><del>{product.oldPrice.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} BYN</del></div><button className={`add-cart ${cart[product.id] ? 'added' : ''}`} type="button" aria-label={`Добавить в корзину: ${product.title}`} onClick={() => addToCart(product.id)}>{cart[product.id] ? <><Icon name="check" size={17} /><span>{cart[product.id]}</span></> : <Icon name="cart" size={18} />}</button></div></div></article>)}</div>{filteredProducts.length === 0 && <div className="empty-results"><Icon name="search" size={28} /><strong>{showFavorites ? 'В избранном пока пусто' : 'Ничего не нашлось'}</strong><span>{showFavorites ? 'Нажимайте на сердечко у товара, чтобы сохранить его здесь.' : 'Попробуйте изменить условия поиска или фильтры.'}</span><button type="button" onClick={() => { setSearch(''); setBrand('Все бренды'); setMaxPrice(350); setInStockOnly(false); setShowFavorites(false); setActiveCategory('Все товары') }}>{showFavorites ? 'Перейти в каталог' : 'Сбросить фильтры'}</button></div>}<div className="catalog-footer"><span>Показано {filteredProducts.length} из {products.length} товаров</span><button className="button button-outline" type="button" onClick={() => { setActiveCategory('Все товары'); setShowFavorites(false); setMaxPrice(350); setBrand('Все бренды'); setActiveTab('Хиты продаж') }}>Смотреть весь каталог <Icon name="arrow" size={17} /></button></div></div></section>
+        <section className="products-section section-space" id="catalog"><div className="container"><div className="section-heading product-heading"><div><span className="eyebrow">ТОЛЬКО ПРОВЕРЕННОЕ</span><h2>{showFavorites ? 'Избранное' : activeCategory === 'Все товары' ? 'Выбор наших клиентов' : activeCategory}</h2></div><div className="product-tabs"><button className={activeTab === 'Хиты продаж' ? 'is-selected' : ''} type="button" onClick={() => setActiveTab('Хиты продаж')}>Хиты продаж</button><button className={activeTab === 'Новинки' ? 'is-selected' : ''} type="button" onClick={() => setActiveTab('Новинки')}>Новинки <span>NEW</span></button></div></div><div className="catalog-tools"><span>{filteredProducts.length} товаров</span><label className="brand-select">Бренд<select aria-label="Фильтр по бренду" value={brand} onChange={(event) => setBrand(event.target.value)}><option>Все бренды</option>{[...new Set(products.map((product) => product.brand))].map((name) => <option key={name}>{name}</option>)}</select><Icon name="chevron" size={14} /></label><label className="price-filter">До {maxPrice} BYN<input type="range" min="20" max="350" step="10" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} aria-label="Максимальная цена" /></label><label className="stock-filter"><input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} /><span className="custom-check"><Icon name="check" size={12} /></span> В наличии</label><button className="reset-filters" type="button" onClick={() => { setBrand('Все бренды'); setMaxPrice(350); setInStockOnly(false); setSearch(''); setShowFavorites(false); setActiveCategory('Все товары') }}>Сбросить</button></div><div className="product-grid">{filteredProducts.map((product) => <article className="product-card" key={product.id}><div className="product-image-wrap"><img src={`https://images.unsplash.com/${product.image}?auto=format&fit=crop&w=640&q=80`} alt={product.title} loading="lazy" /><span className={`product-badge ${product.badge === 'Новинка' ? 'badge-new' : ''}`}>{product.badge}</span><button className={`product-favorite ${favorites.includes(product.id) ? 'is-active' : ''}`} type="button" aria-label={favorites.includes(product.id) ? 'Убрать из избранного' : 'Добавить в избранное'} onClick={() => setFavorites((current) => current.includes(product.id) ? current.filter((id) => id !== product.id) : [...current, product.id])}><Icon name="heart" size={19} /></button></div><div className="product-info"><span className="product-brand">{product.brand}</span><h3>{product.title}</h3><div className="product-rating"><Icon name="star" size={14} /><strong>{product.rating}</strong><span>({product.reviews})</span><span className={`stock-label ${product.id === 8 ? 'stock-order' : ''}`}><i />{product.id === 8 ? 'Под заказ' : 'В наличии'}</span></div><div className="product-purchase"><div className="product-price"><strong>{product.price.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} <small>BYN</small></strong><del>{product.oldPrice.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} BYN</del></div><button className={`add-cart ${cart[product.id] ? 'added' : ''}`} type="button" aria-label={`Добавить в корзину: ${product.title}`} onClick={() => addToCart(product.id)}>{cart[product.id] ? <><Icon name="check" size={17} /><span>{cart[product.id]}</span></> : <Icon name="cart" size={18} />}</button></div></div></article>)}</div>{filteredProducts.length === 0 && <div className="empty-results"><Icon name="search" size={28} /><strong>Ничего не нашлось</strong><span>Попробуйте изменить условия поиска или фильтры.</span><button type="button" onClick={() => { setSearch(''); setBrand('Все бренды'); setMaxPrice(350); setInStockOnly(false); setShowFavorites(false); setActiveCategory('Все товары') }}>Сбросить фильтры</button></div>}<div className="catalog-footer"><span>Показано {filteredProducts.length} из {products.length} товаров</span><button className="button button-outline" type="button" onClick={() => { setActiveCategory('Все товары'); setShowFavorites(false); setMaxPrice(350); setBrand('Все бренды'); setActiveTab('Хиты продаж') }}>Смотреть весь каталог <Icon name="arrow" size={17} /></button></div></div></section>
 
         <section className="benefits-section section-space" id="benefits"><div className="container"><div className="section-heading"><div><span className="eyebrow">С НАМИ СПОКОЙНО</span><h2>Почему выбирают СтройБазу</h2></div><p className="heading-note">Делаем стройку предсказуемой: от первого расчёта до разгрузки на объекте.</p></div><div className="benefit-grid"><article><span className="benefit-icon"><Icon name="truck" size={26} /></span><span className="benefit-number">01</span><h3>Привозим точно в срок</h3><p>Собственный транспорт и доставка по всей Беларуси. Подберём удобное время.</p></article><article><span className="benefit-icon"><Icon name="shield" size={26} /></span><span className="benefit-number">02</span><h3>Отвечаем за качество</h3><p>Работаем напрямую с производителями и проверяем каждую поставку.</p></article><article><span className="benefit-icon"><Icon name="boxes" size={26} /></span><span className="benefit-number">03</span><h3>Считаем выгодно</h3><p>Оптовые условия для бригад, застройщиков и постоянных клиентов.</p></article><article><span className="benefit-icon"><Icon name="headset" size={26} /></span><span className="benefit-number">04</span><h3>Помогаем разобраться</h3><p>Специалисты подскажут материалы и количество под вашу задачу.</p></article></div></div></section>
 
@@ -317,12 +186,42 @@ function App() {
         <section className="newsletter-section"><div className="container newsletter-inner"><span className="newsletter-mark"><Icon name="mail" size={23} /></span><div><strong>Полезное для вашего проекта</strong><small>Расчёты, советы и закрытые предложения раз в неделю</small></div><form onSubmit={(event) => { event.preventDefault(); event.currentTarget.reset() }}><input type="email" placeholder="Ваш email" aria-label="Ваш email" required /><button type="submit" aria-label="Подписаться"><Icon name="arrow" size={19} /></button></form></div></section>
       </main>
 
-      <footer className="site-footer" id="contacts"><div className="container footer-main"><div className="footer-about"><a className="brand-mark footer-brand" href="#home"><span className="brand-symbol"><span /><span /><span /></span><span className="brand-name"><span className="brand-word">строй<span>база</span></span><small>МАТЕРИАЛЫ ДЛЯ ДЕЛА</small></span></a><p>Надёжная база для больших планов. Материалы, инструменты и доставка для стройки без лишних забот.</p><div className="social-links"><a href="https://t.me/" aria-label="Telegram">tg</a><a href="https://www.instagram.com/" aria-label="Instagram">ig</a><a href="https://vk.com/" aria-label="ВКонтакте">вк</a></div></div><div className="footer-column"><strong>Покупателям</strong><a href="#catalog">Каталог товаров</a><a href="#delivery" id="delivery">Доставка и оплата</a><a href="#calculator">Калькулятор материалов</a><a href="#reviews">Отзывы клиентов</a></div><div className="footer-column"><strong>Контакты</strong><a href="tel:+375173090909">+375 (17) 309-09-09</a><a href="mailto:info@stroybaza.by">info@stroybaza.by</a><span><Icon name="location" size={15} /> Минск, ул. Складская, 14</span><span><Icon name="clock" size={15} /> Пн–Сб: 8:00–20:00</span></div><div className="footer-column payment-column"><strong>Оплата</strong><p>Наличные, карта, безналичный расчёт для юрлиц</p><div className="payment-methods"><span>VISA</span><span>МИР</span><span>ЕРИП</span></div><div className="legal-note">ООО «СтройБаза»<br />УНП 193456789</div></div></div><div className="container footer-bottom"><span>© 2025 СтройБаза. Все права защищены.</span><a href="mailto:info@stroybaza.by">Политика конфиденциальности</a><span>Цены указаны в белорусских рублях</span></div></footer>
+      <Footer />
 
-      {cartOpen && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setCartOpen(false) }}><aside className="side-drawer" aria-label="Корзина"><div className="drawer-heading"><div><span className="eyebrow">ВАШ ЗАКАЗ</span><h2>Корзина <span>{cartCount}</span></h2></div><button className="close-button" type="button" aria-label="Закрыть корзину" onClick={() => setCartOpen(false)}><Icon name="close" size={21} /></button></div>{cartCount === 0 ? <div className="drawer-empty"><span><Icon name="cart" size={27} /></span><strong>Пока здесь пусто</strong><p>Добавьте товары из каталога, и мы соберём ваш заказ.</p><button className="button button-primary" type="button" onClick={() => setCartOpen(false)}>Перейти к покупкам</button></div> : <><div className="drawer-items">{products.filter((product) => cart[product.id]).map((product) => <div className="drawer-product" key={product.id}><img src={`https://images.unsplash.com/${product.image}?auto=format&fit=crop&w=160&q=70`} alt="" /><div className="drawer-product-info"><strong>{product.title}</strong><small>{product.price.toFixed(2)} BYN / шт.</small><div className="quantity-control"><button type="button" aria-label="Уменьшить количество" onClick={() => changeQuantity(product.id, -1)}>−</button><span>{cart[product.id]}</span><button type="button" aria-label="Увеличить количество" onClick={() => changeQuantity(product.id, 1)}>+</button></div></div><b>{(product.price * cart[product.id]).toFixed(2)} BYN</b></div>)}</div><div className="drawer-total"><span>Итого без доставки</span><strong>{cartTotal.toFixed(2)} BYN</strong><button className="button button-primary" type="button" onClick={() => { setCartOpen(false); setCheckoutError(''); setCheckoutOpen(true) }}>Оформить заказ <Icon name="arrow" size={17} /></button><small>Точная стоимость доставки будет рассчитана менеджером</small></div></>}</aside></div>}
-      {accountOpen && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setAccountOpen(false) }}><section className="account-modal" aria-label="Личный кабинет"><button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={() => setAccountOpen(false)}><Icon name="close" size={21} /></button><span className="modal-icon"><Icon name="user" size={23} /></span><span className="eyebrow">ЛИЧНЫЙ КАБИНЕТ</span>{currentUser && accountMode === 'profile' ? <><h2>Здравствуйте, {currentUser.name}</h2><p>{currentUser.email}</p><div className="profile-orders"><strong>История заказов ({userOrders.length})</strong>{userOrders.length === 0 ? <p>Пока заказов нет. Оформленные заказы появятся здесь.</p> : userOrders.map((order) => <article key={order.id}><div><strong>{order.id}</strong><span>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</span></div><b>{order.total.toFixed(2)} BYN</b><small>{order.items.map((item) => `${item.title} × ${item.quantity}`).join(', ')}</small><small>Оплата при получении · {order.address}</small></article>)}</div><button className="button button-outline profile-signout" type="button" onClick={signOut}>Выйти из аккаунта</button></> : <><h2>{accountMode === 'register' ? 'Создать аккаунт' : 'Рады вас видеть'}</h2><p>{accountMode === 'register' ? 'Зарегистрируйтесь, чтобы сохранять историю заказов в этом браузере.' : 'Войдите, чтобы видеть историю оформленных заказов.'}</p><form onSubmit={handleAuth}><label>Email<input name="email" type="email" autoComplete="email" required /></label>{accountMode === 'register' && <label>Имя<input name="name" type="text" autoComplete="name" minLength="2" required /></label>}<label>Пароль<input name="password" type="password" autoComplete={accountMode === 'register' ? 'new-password' : 'current-password'} minLength="8" required /></label>{authError && <p className="form-error" role="alert">{authError}</p>}<button className="button button-primary" type="submit" disabled={authBusy}>{authBusy ? 'Подождите…' : accountMode === 'register' ? 'Зарегистрироваться' : 'Войти'} <Icon name="arrow" size={17} /></button></form><button className="text-link auth-switch" type="button" onClick={() => { setAccountMode(accountMode === 'register' ? 'login' : 'register'); setAuthError('') }}>{accountMode === 'register' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}</button><small>Демо-режим: данные сохраняются только в этом браузере и не отправляются на сервер.</small></>}</section></div>}
-      {checkoutOpen && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setCheckoutOpen(false) }}><section className="account-modal checkout-modal" aria-label="Оформление заказа"><button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={() => setCheckoutOpen(false)}><Icon name="close" size={21} /></button><span className="modal-icon"><Icon name="cart" size={23} /></span><span className="eyebrow">ОФОРМЛЕНИЕ ЗАКАЗА</span><h2>Куда доставить?</h2><p>Заполните контакты — менеджер свяжется с вами для уточнения доставки.</p><div className="checkout-summary"><span>{cartCount} товара(ов)</span><strong>{cartTotal.toFixed(2)} BYN</strong></div><form onSubmit={submitOrder}><label>Имя<input name="name" type="text" autoComplete="name" defaultValue={currentUser?.name ?? ''} minLength="2" required /></label><label>Телефон<input name="phone" type="tel" autoComplete="tel" placeholder="+375 (__) ___-__-__" required /></label><label>Адрес доставки<input name="address" type="text" autoComplete="street-address" placeholder="Город, улица, дом" required /></label><label>Комментарий к заказу<textarea name="comment" rows="2" placeholder="Подъезд, удобное время и другие детали" /></label><div className="payment-note"><strong>Оплата при получении</strong><span>Наличными или картой при доставке</span></div>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="button button-primary" type="submit">Подтвердить заказ <Icon name="arrow" size={17} /></button></form><small>Демо-режим: заказ сохранится только в этом браузере; продавцу он не отправляется.</small></section></div>}
-      {orderComplete && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setOrderComplete(null) }}><section className="account-modal order-success" aria-label="Заказ оформлен"><button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={() => setOrderComplete(null)}><Icon name="close" size={21} /></button><span className="modal-icon"><Icon name="check" size={23} /></span><span className="eyebrow">ЗАКАЗ СОХРАНЁН</span><h2>Спасибо за заказ!</h2><p>Номер заказа: <strong>{orderComplete.id}</strong></p><div className="checkout-summary"><span>К оплате при получении</span><strong>{orderComplete.total.toFixed(2)} BYN</strong></div><small>Это демо-заказ, он сохранён только в вашем браузере и не отправлен продавцу.</small><button className="button button-primary" type="button" onClick={() => setOrderComplete(null)}>Продолжить покупки</button></section></div>}
+      <CartDrawer
+        cart={cart}
+        cartCount={cartCount}
+        cartTotal={cartTotal}
+        isOpen={cartOpen}
+        products={products}
+        onChangeQuantity={changeQuantity}
+        onCheckout={() => {
+          setCartOpen(false)
+          setCheckoutOpen(true)
+        }}
+        onClose={() => setCartOpen(false)}
+      />
+      {accountOpen && (
+        <AccountModal
+          demoData={demoData}
+          initialMode={currentUser ? 'profile' : 'login'}
+          isOpen={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          onDemoDataChange={setDemoData}
+        />
+      )}
+      <CheckoutModal
+        cart={cart}
+        cartCount={cartCount}
+        cartTotalCents={cartTotalCents}
+        currentUser={currentUser}
+        demoData={demoData}
+        isOpen={checkoutOpen}
+        onCartClear={() => setCart({})}
+        onClose={() => setCheckoutOpen(false)}
+        onDemoDataChange={setDemoData}
+        products={products}
+      />
     </div>
   )
 }
