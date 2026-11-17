@@ -82,7 +82,7 @@ export function StoreHeader({
             <span>Избранное</span>
             {favoritesCount > 0 && <b>{favoritesCount}</b>}
           </button>
-          <button className="cart-action" type="button" onClick={onOpenCart}>
+          <button className="cart-action" type="button" aria-label="Открыть корзину" onClick={onOpenCart}>
             <Icon name="cart" size={19} />
             <span>Корзина</span>
             <b>{cartCount}</b>
