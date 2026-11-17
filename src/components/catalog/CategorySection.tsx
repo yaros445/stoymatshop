@@ -1,3 +1,5 @@
+import Button from '@mui/material/Button'
+import ButtonBase from '@mui/material/ButtonBase'
 import { Icon } from '../ui/Icon.tsx'
 import type { Category } from '../../types.ts'
 
@@ -16,17 +18,17 @@ export function CategorySection({ categories, onShowAll, onSelectCategory }: Cat
             <span className="eyebrow">ВЫБИРАЙТЕ СВОЁ</span>
             <h2>Категории товаров</h2>
           </div>
-          <button className="text-link" type="button" onClick={onShowAll}>
+          <Button className="text-link" variant="text" onClick={onShowAll}>
             Все категории <Icon name="arrow" size={17} />
-          </button>
+          </Button>
         </div>
         <div className="category-grid">
           {categories.map((category, index) => (
-            <button
+            <ButtonBase
               className="category-tile"
-              type="button"
               key={category.id}
               onClick={() => onSelectCategory(category.id)}
+              sx={{ width: '100%', justifyContent: 'flex-start', textAlign: 'left' }}
             >
               <span className={`category-icon category-tone-${index % 5}`}>
                 <Icon name={category.icon} size={25} />
@@ -36,7 +38,7 @@ export function CategorySection({ categories, onShowAll, onSelectCategory }: Cat
                 <small>{category.count}</small>
               </span>
               <Icon className="category-arrow" name="arrow" size={16} />
-            </button>
+            </ButtonBase>
           ))}
         </div>
       </div>

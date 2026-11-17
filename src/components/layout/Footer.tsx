@@ -5,7 +5,7 @@ import { Logo } from './Logo.tsx'
 
 export function Footer() {
   return (
-    <footer className="site-footer" id="contacts">
+    <footer className="site-footer">
       <div className="container footer-main">
         <div className="footer-about">
           <Logo footer />

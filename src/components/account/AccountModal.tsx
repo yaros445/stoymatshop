@@ -9,11 +9,19 @@ interface AccountModalProps {
   demoData: DemoData
   isOpen: boolean
   initialMode: AccountMode
+  presentation?: 'modal' | 'page'
   onClose: () => void
   onDemoDataChange: (data: DemoData) => void
 }
 
-export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDataChange }: AccountModalProps) {
+export function AccountModal({
+  demoData,
+  isOpen,
+  initialMode,
+  presentation = 'modal',
+  onClose,
+  onDemoDataChange,
+}: AccountModalProps) {
   const [mode, setMode] = useState(initialMode)
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
@@ -86,11 +94,8 @@ export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDat
     setAuthError('')
   }
 
-  if (!isOpen) return null
-
-  return (
-    <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-      <section className="account-modal" aria-label="Личный кабинет">
+  const panel = (
+    <section className={`account-modal${presentation === 'page' ? ' account-page-panel' : ''}`} aria-label="Личный кабинет">
         <button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={onClose}>
           <Icon name="close" size={21} />
         </button>
@@ -147,6 +152,16 @@ export function AccountModal({ demoData, isOpen, initialMode, onClose, onDemoDat
           </>
         )}
       </section>
+  )
+
+  if (presentation === 'page') {
+    return <div className="container account-page">{panel}</div>
+  }
+  if (!isOpen) return null
+
+  return (
+    <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      {panel}
     </div>
   )
 }

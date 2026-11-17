@@ -1,3 +1,9 @@
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
+import Slider from '@mui/material/Slider'
 import { ALL_BRANDS, ALL_CATEGORIES, BADGES, TABS } from '../../constants/filters.ts'
 import { categories } from '../../data/categories.ts'
 import { MAX_PRICE_CENTS, MIN_PRICE_CENTS, productBrands, products } from '../../data/products.ts'
@@ -68,38 +74,44 @@ export function CatalogSection({
           </label>
           <label className="price-filter">
             До {formatPriceCents(maxPriceCents)}
-            <input
-              type="range"
+            <Slider
               min={Math.max(0, Math.floor(MIN_PRICE_CENTS / 100) * 100)}
               max={MAX_PRICE_CENTS}
-              step="100"
+              step={100}
               value={maxPriceCents}
-              onChange={(event) => dispatchFilters({ type: 'setMaxPrice', value: Number(event.target.value) })}
+              onChange={(_, value) => dispatchFilters({ type: 'setMaxPrice', value: Number(value) })}
               aria-label="Максимальная цена"
+              size="small"
+              sx={{ width: 'clamp(62px, 7vw, 84px)', color: 'primary.main' }}
             />
           </label>
           <label className="stock-filter">
             <input type="checkbox" checked={inStockOnly} onChange={() => dispatchFilters({ type: 'toggleInStock' })} />
             <span className="custom-check"><Icon name="check" size={12} /></span> В наличии
           </label>
-          <button className="reset-filters" type="button" onClick={onResetFilters}>Сбросить</button>
+          <Button className="reset-filters" size="small" onClick={onResetFilters}>Сбросить</Button>
         </div>
         <div className="product-grid">
           {filteredProducts.map((product) => (
-            <article className="product-card" key={product.id}>
+            <Card className="product-card" component="article" variant="outlined" key={product.id}>
               <div className="product-image-wrap">
                 <img src={getImageUrl(product.image, 640)} alt={product.title} loading="lazy" />
-                <span className={`product-badge ${product.badge === BADGES.NEW ? 'badge-new' : ''}`}>{product.badge}</span>
-                <button
+                <Chip
+                  className={`product-badge ${product.badge === BADGES.NEW ? 'badge-new' : ''}`}
+                  label={product.badge}
+                  size="small"
+                  sx={{ position: 'absolute', top: 10, left: 10, borderRadius: 0, height: 24, fontSize: 10 }}
+                />
+                <IconButton
                   className={`product-favorite ${favorites.includes(product.id) ? 'is-active' : ''}`}
-                  type="button"
                   aria-label={favorites.includes(product.id) ? 'Убрать из избранного' : 'Добавить в избранное'}
                   onClick={() => onToggleFavorite(product.id)}
+                  sx={{ borderRadius: 0, p: 0 }}
                 >
                   <Icon name="heart" size={19} />
-                </button>
+                </IconButton>
               </div>
-              <div className="product-info">
+              <CardContent className="product-info" sx={{ p: '12px', '&:last-child': { pb: '12px' } }}>
                 <span className="product-brand">{product.brand}</span>
                 <h3>{product.title}</h3>
                 <div className="product-rating">
@@ -113,19 +125,22 @@ export function CatalogSection({
                     <strong>{formatPriceCents(product.priceCents)}</strong>
                     <del>{formatPriceCents(product.oldPriceCents)}</del>
                   </div>
-                  <button
+                  <Button
                     className={`add-cart ${cart[product.id] ? 'added' : ''}`}
-                    type="button"
+                    variant="contained"
+                    color={cart[product.id] ? 'success' : 'primary'}
                     aria-label={`Добавить в корзину: ${product.title}`}
+                    disableRipple
+                    sx={{ minWidth: 35, p: 0, borderRadius: 0 }}
                     onClick={() => onAddToCart(product.id)}
                   >
                     {cart[product.id]
                       ? <><Icon name="check" size={17} /><span>{cart[product.id]}</span></>
                       : <Icon name="cart" size={18} />}
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </article>
+              </CardContent>
+            </Card>
           ))}
         </div>
         {filteredProducts.length === 0 && (
@@ -133,12 +148,12 @@ export function CatalogSection({
             <Icon name="search" size={28} />
             <strong>{showFavorites ? 'В избранном пока пусто' : 'Ничего не нашлось'}</strong>
             <span>{showFavorites ? 'Нажимайте на сердечко у товара, чтобы сохранить его здесь.' : 'Попробуйте изменить условия поиска или фильтры.'}</span>
-            <button type="button" onClick={onResetFilters}>{showFavorites ? 'Перейти в каталог' : 'Сбросить фильтры'}</button>
+            <Button onClick={onResetFilters}>{showFavorites ? 'Перейти в каталог' : 'Сбросить фильтры'}</Button>
           </div>
         )}
         <div className="catalog-footer">
           <span>Показано {pluralizeProducts(filteredProducts.length)} из {pluralizeProducts(products.length)}</span>
-          <button className="button button-outline" type="button" onClick={onResetFilters}>Смотреть весь каталог <Icon name="arrow" size={17} /></button>
+          <Button className="button button-outline" variant="outlined" onClick={onResetFilters}>Смотреть весь каталог <Icon name="arrow" size={17} /></Button>
         </div>
       </div>
     </section>
