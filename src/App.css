@@ -300,7 +300,20 @@
 .account-modal form { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
 .account-modal form input { height: 42px; font-size: 12px; }
 .account-modal form .button { width: 100%; }
+.form-error { color: #a33b2c !important; font-size: 11px !important; line-height: 1.5 !important; }
 .account-modal > small { display: block; margin-top: 10px; color: #939da0; font-size: 8px; line-height: 1.6; }
+.profile-orders { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.profile-orders > strong { color: #35444b; font-size: 13px; }
+.profile-orders > p { color: #79878c; font-size: 11px; line-height: 1.6; }
+.profile-orders article { display: flex; flex-direction: column; gap: 7px; padding: 13px; border: 1px solid var(--line); background: #fbfcfb; }
+.profile-order-heading, .profile-order-total { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.profile-order-heading strong { color: #35444b; font-size: 11px; }
+.profile-order-heading time, .profile-order-total span { color: #879398; font-size: 9px; }
+.profile-order-total b { color: #26363e; font-size: 12px; white-space: nowrap; }
+.profile-orders article small { color: #65737a; font-size: 9px; line-height: 1.6; overflow-wrap: anywhere; }
+.profile-signout { width: 100%; margin-top: 15px; }
+.api-status { margin-block: 0 15px; padding: 12px 14px; border: 1px solid #e8ebea; color: #65737a; background: #fff; font-size: 11px; line-height: 1.6; }
+.api-status.api-error { border-color: #e9c5bb; color: #8d4030; background: #fff8f6; }
 .account-page { display: flex; justify-content: center; padding-bottom: 58px; }
 .account-page-panel { width: min(100%, 720px); max-height: none; overflow: visible; align-self: auto; margin: 0; border: 1px solid var(--line); animation: none; }
 .account-page-panel .modal-close { display: none; }

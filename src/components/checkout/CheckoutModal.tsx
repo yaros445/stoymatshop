@@ -1,23 +1,22 @@
 import { useState } from 'react'
-import { createId, saveDemoData } from '../account/demoAccountStorage.ts'
+import { submitOrder } from '../../api/client.ts'
 import { formatPriceCents } from '../../utils/formatPrice.ts'
 import { pluralizeProducts } from '../../utils/pluralize.ts'
 import { Icon } from '../ui/Icon.tsx'
 import { OrderConfirmationModal } from './OrderConfirmationModal.tsx'
 import type { FormEvent } from 'react'
-import type { Cart, CartProduct, DemoData, DemoOrder, DemoUser } from '../../types.ts'
+import type { Cart } from '../../types.ts'
+import type { ApiOrder, ApiUser } from '../../api/client.ts'
 
 interface CheckoutModalProps {
   cart: Cart
   cartCount: number
   cartTotalCents: number
-  currentUser: DemoUser | null
-  demoData: DemoData
+  currentUser: ApiUser | null
   isOpen: boolean
   onCartClear: () => void
   onClose: () => void
-  onDemoDataChange: (data: DemoData) => void
-  products: CartProduct[]
+  onOrderCreated: () => void
 }
 
 export function CheckoutModal({
@@ -25,82 +24,53 @@ export function CheckoutModal({
   cartCount,
   cartTotalCents,
   currentUser,
-  demoData,
   isOpen,
   onCartClear,
   onClose,
-  onDemoDataChange,
-  products,
+  onOrderCreated,
 }: CheckoutModalProps) {
   const [error, setError] = useState('')
-  const [completedOrder, setCompletedOrder] = useState<DemoOrder | null>(null)
-  const productsById = new Map(products.map((product) => [product.id, product]))
+  const [submitting, setSubmitting] = useState(false)
+  const [completedOrder, setCompletedOrder] = useState<ApiOrder | null>(null)
 
   function closeCheckout() {
     setError('')
     onClose()
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
 
     const formData = new FormData(event.currentTarget)
-    const name = String(formData.get('name')).trim()
-    const phone = String(formData.get('phone')).trim()
-    const address = String(formData.get('address')).trim()
-    if (!name || !address) {
-      setError('Укажите имя и адрес доставки.')
-      return
-    }
-    if (!/^375\d{9}$/.test(phone.replace(/\D/g, ''))) {
-      setError('Укажите белорусский номер телефона в формате +375 (XX) XXX-XX-XX.')
-      return
-    }
-
-    const cartEntries = Object.entries(cart).filter(([, quantity]) => quantity > 0)
-    const items = cartEntries.flatMap(([productId, quantity]) => {
-      const product = productsById.get(Number(productId))
-      if (!product) return []
-      return [{
-        id: product.id,
-        title: product.title,
-        quantity,
-        price: Math.round(product.price * 100) / 100,
-      }]
-    })
+    const items = Object.entries(cart)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([productId, quantity]) => ({ productId: Number(productId), quantity }))
 
     if (items.length === 0) {
       setError('Корзина пуста. Добавьте товары и попробуйте снова.')
       return
     }
-    if (items.length !== cartEntries.length) {
-      setError('Не удалось проверить товары в корзине. Обновите страницу и попробуйте снова.')
-      return
-    }
 
+    setSubmitting(true)
     try {
-      const order = {
-        id: `SB-${createId().toUpperCase()}`,
-        userId: currentUser?.id ?? null,
-        createdAt: new Date().toISOString(),
-        name,
-        phone,
-        address,
+      const order = await submitOrder({
+        customerName: String(formData.get('name')).trim(),
+        customerPhone: String(formData.get('phone')).trim(),
+        address: String(formData.get('address')).trim(),
         comment: String(formData.get('comment') ?? '').trim(),
-        payment: 'При получении',
         items,
-        total: cartTotalCents / 100,
-      }
-      const nextData = { ...demoData, orders: [order, ...demoData.orders] }
-      saveDemoData(nextData)
-      onDemoDataChange(nextData)
+      })
       onCartClear()
+      onOrderCreated()
       setCompletedOrder(order)
       onClose()
-    } catch (saveError) {
-      console.error('Не удалось сохранить заказ:', saveError)
-      setError('Не удалось сохранить заказ в этом браузере. Попробуйте ещё раз.')
+    } catch (submitError) {
+      setError(submitError instanceof Error
+        ? submitError.message
+        : 'Не удалось оформить заказ. Попробуйте ещё раз.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -121,18 +91,20 @@ export function CheckoutModal({
               <strong>{formatPriceCents(cartTotalCents)}</strong>
             </div>
             <form onSubmit={handleSubmit}>
-              <label>Имя<input name="name" type="text" autoComplete="name" defaultValue={currentUser?.name ?? ''} minLength={2} required /></label>
+              <label>Имя<input name="name" type="text" autoComplete="name" defaultValue={currentUser?.name ?? ''} minLength={2} maxLength={120} required /></label>
               <label>Телефон<input name="phone" type="tel" autoComplete="tel" placeholder="+375 (__) ___-__-__" required /></label>
-              <label>Адрес доставки<input name="address" type="text" autoComplete="street-address" placeholder="Город, улица, дом" required /></label>
-              <label>Комментарий к заказу<textarea name="comment" rows={2} placeholder="Подъезд, удобное время и другие детали" /></label>
+              <label>Адрес доставки<input name="address" type="text" autoComplete="street-address" placeholder="Город, улица, дом" minLength={5} maxLength={250} required /></label>
+              <label>Комментарий к заказу<textarea name="comment" rows={2} maxLength={1000} placeholder="Подъезд, удобное время и другие детали" /></label>
               <div className="payment-note">
                 <strong>Оплата при получении</strong>
                 <span>Наличными или картой при доставке</span>
               </div>
               {error && <p className="form-error" role="alert">{error}</p>}
-              <button className="button button-primary" type="submit">Подтвердить заказ <Icon name="arrow" size={17} /></button>
+              <button className="button button-primary" type="submit" disabled={submitting}>
+                {submitting ? 'Оформляем…' : 'Подтвердить заказ'} <Icon name="arrow" size={17} />
+              </button>
             </form>
-            <small>Демо-режим: заказ сохранится только в этом браузере; продавцу он не отправляется.</small>
+            <small>Наличие и итоговая стоимость проверяются сервером. Заказ будет сохранён в базе магазина.</small>
           </section>
         </div>
       )}

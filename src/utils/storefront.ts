@@ -1,18 +1,19 @@
 import { ALL_BRANDS, ALL_CATEGORIES, BADGES, TABS } from '../constants/filters.ts'
 import { BAG_WEIGHT_KG, PLASTER_CONSUMPTION_KG_M2, RESERVE_RATIO } from '../constants/calculator.ts'
 import { categories } from '../data/categories.ts'
-import type { Product, CatalogFilters } from '../types.ts'
+import type { Category, Product, CatalogFilters } from '../types.ts'
 
 type FilterableProduct = Pick<Product, 'id' | 'title' | 'categoryId' | 'brand' | 'sku' | 'priceCents' | 'badge' | 'inStock'>
 
 export function filterProducts<T extends FilterableProduct>(
   productsToFilter: T[],
   filters: CatalogFilters & { favorites: number[] },
+  categoriesList: Category[] = categories,
 ): T[] {
   const search = filters.search.trim().toLocaleLowerCase('ru')
 
   return productsToFilter.filter((product) => {
-    const categoryTitle = categories.find((category) => category.id === product.categoryId)?.title ?? ''
+    const categoryTitle = categoriesList.find((category) => category.id === product.categoryId)?.title ?? ''
     const matchesSearch = `${product.title} ${categoryTitle} ${product.brand} ${product.sku}`
       .toLocaleLowerCase('ru')
       .includes(search)

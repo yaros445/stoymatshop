@@ -4,7 +4,7 @@ import { MAX_PRICE_CENTS } from '../../data/products.ts'
 import type { CatalogFilters } from '../../types.ts'
 
 export type CatalogFilterAction =
-  | { type: 'reset' }
+  | { type: 'reset'; maxPriceCents?: number }
   | { type: 'setSearch'; value: string }
   | { type: 'setCategory'; value: string }
   | { type: 'setTab'; value: string }
@@ -26,7 +26,9 @@ export const initialCatalogFilters: CatalogFilters = {
 export function catalogFiltersReducer(state: CatalogFilters, action: CatalogFilterAction): CatalogFilters {
   switch (action.type) {
     case 'reset':
-      return initialCatalogFilters
+      return action.maxPriceCents === undefined
+        ? initialCatalogFilters
+        : { ...initialCatalogFilters, maxPriceCents: action.maxPriceCents }
     case 'setSearch':
       return { ...state, search: action.value, tab: TABS.ALL, showFavorites: false }
     case 'setCategory':

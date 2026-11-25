@@ -55,40 +55,6 @@ export interface Product {
 export type CartProduct = Product & { price: number }
 export type Cart = Record<number, number>
 
-export interface DemoUser {
-  id: string
-  name: string
-  email: string
-  passwordSalt: string
-  passwordHash: string
-}
-
-export interface OrderItem {
-  id: number
-  title: string
-  quantity: number
-  price: number
-}
-
-export interface DemoOrder {
-  id: string
-  userId: string | null
-  createdAt: string
-  name: string
-  phone: string
-  address: string
-  comment: string
-  payment: string
-  items: OrderItem[]
-  total: number
-}
-
-export interface DemoData {
-  users: DemoUser[]
-  currentUserId: string | null
-  orders: DemoOrder[]
-}
-
 export type AccountMode = 'login' | 'register' | 'profile'
 
 export interface CatalogFilters {

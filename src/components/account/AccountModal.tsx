@@ -1,33 +1,75 @@
-import { useState } from 'react'
-import { createId, hashPassword, saveDemoData } from './demoAccountStorage.ts'
-import { formatPrice } from '../../utils/formatPrice.ts'
+import { useEffect, useState } from 'react'
+import { fetchAccountOrders } from '../../api/client.ts'
+import { formatPriceCents } from '../../utils/formatPrice.ts'
 import { Icon } from '../ui/Icon.tsx'
 import type { FormEvent } from 'react'
-import type { AccountMode, DemoData } from '../../types.ts'
+import type { AccountMode } from '../../types.ts'
+import type { ApiOrder, ApiUser } from '../../api/client.ts'
 
 interface AccountModalProps {
-  demoData: DemoData
-  isOpen: boolean
+  authLoadError: string
+  authLoading: boolean
+  currentUser: ApiUser | null
   initialMode: AccountMode
+  isOpen: boolean
   presentation?: 'modal' | 'page'
   onClose: () => void
-  onDemoDataChange: (data: DemoData) => void
+  onSignIn: (email: string, password: string) => Promise<void>
+  onSignOut: () => Promise<void>
+  onSignUp: (name: string, email: string, password: string) => Promise<void>
+}
+
+const orderStatusLabels: Record<string, string> = {
+  PENDING: 'Ожидает подтверждения',
+  CONFIRMED: 'Подтверждён',
+  PROCESSING: 'Собирается',
+  SHIPPED: 'Передан в доставку',
+  COMPLETED: 'Выполнен',
+  CANCELLED: 'Отменён',
 }
 
 export function AccountModal({
-  demoData,
-  isOpen,
+  authLoadError,
+  authLoading,
+  currentUser,
   initialMode,
+  isOpen,
   presentation = 'modal',
   onClose,
-  onDemoDataChange,
+  onSignIn,
+  onSignOut,
+  onSignUp,
 }: AccountModalProps) {
   const [mode, setMode] = useState(initialMode)
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
+  const [accountOrders, setAccountOrders] = useState<{
+    userId: string
+    orders: ApiOrder[]
+    error: string
+  } | null>(null)
 
-  const currentUser = demoData.users.find((user) => user.id === demoData.currentUserId) || null
-  const userOrders = currentUser ? demoData.orders.filter((order) => order.userId === currentUser.id) : []
+  useEffect(() => {
+    const userId = currentUser?.id
+    if (!userId) return
+
+    let active = true
+    fetchAccountOrders()
+      .then((accountOrders) => {
+        if (active) setAccountOrders({ userId, orders: accountOrders, error: '' })
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setAccountOrders({
+            userId,
+            orders: [],
+            error: error instanceof Error ? error.message : 'Не удалось загрузить заказы.',
+          })
+        }
+      })
+
+    return () => { active = false }
+  }, [currentUser?.id])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,57 +77,33 @@ export function AccountModal({
     setAuthBusy(true)
 
     const formData = new FormData(event.currentTarget)
-    const email = String(formData.get('email')).trim().toLowerCase()
+    const email = String(formData.get('email')).trim()
     const password = String(formData.get('password'))
 
     try {
-      let nextData
       if (mode === 'register') {
-        const name = String(formData.get('name')).trim()
-        if (demoData.users.some((user) => user.email === email)) {
-          setAuthError('Аккаунт с таким email уже существует. Войдите в него.')
-          return
-        }
-
-        const passwordSalt = createId()
-        const passwordHash = await hashPassword(password, passwordSalt)
-        const user = { id: createId(), name, email, passwordSalt, passwordHash }
-        nextData = {
-          ...demoData,
-          users: [...demoData.users, user],
-          currentUserId: user.id,
-        }
+        await onSignUp(String(formData.get('name')).trim(), email, password)
       } else {
-        const user = demoData.users.find((candidate) => candidate.email === email)
-        if (!user || user.passwordHash !== await hashPassword(password, user.passwordSalt)) {
-          setAuthError('Проверьте email и пароль.')
-          return
-        }
-        nextData = { ...demoData, currentUserId: user.id }
+        await onSignIn(email, password)
       }
-
-      saveDemoData(nextData)
-      onDemoDataChange(nextData)
       setMode('profile')
-      setAuthError('')
     } catch (error) {
-      console.error('Не удалось выполнить вход или регистрацию:', error)
-      setAuthError(error instanceof Error ? error.message : 'Не удалось сохранить данные. Попробуйте ещё раз.')
+      setAuthError(error instanceof Error ? error.message : 'Не удалось выполнить запрос. Попробуйте ещё раз.')
     } finally {
       setAuthBusy(false)
     }
   }
 
-  function signOut() {
+  async function signOut() {
+    setAuthBusy(true)
+    setAuthError('')
     try {
-      const nextData = { ...demoData, currentUserId: null }
-      saveDemoData(nextData)
-      onDemoDataChange(nextData)
+      await onSignOut()
       setMode('login')
-      setAuthError('')
     } catch (error) {
-      console.error('Не удалось завершить сеанс:', error)
-      setAuthError('Не удалось завершить сеанс. Попробуйте ещё раз.')
+      setAuthError(error instanceof Error ? error.message : 'Не удалось завершить сеанс.')
+    } finally {
+      setAuthBusy(false)
     }
   }
 
@@ -94,64 +112,81 @@ export function AccountModal({
     setAuthError('')
   }
 
+  const activeMode = currentUser ? 'profile' : mode
+  const currentOrders = accountOrders && accountOrders.userId === currentUser?.id ? accountOrders : null
+  const orders = currentOrders?.orders ?? []
+  const ordersError = currentOrders?.error ?? ''
+  const ordersLoading = Boolean(currentUser) && !currentOrders
+
   const panel = (
     <section className={`account-modal${presentation === 'page' ? ' account-page-panel' : ''}`} aria-label="Личный кабинет">
-        <button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={onClose}>
-          <Icon name="close" size={21} />
-        </button>
-        <span className="modal-icon"><Icon name="user" size={23} /></span>
-        <span className="eyebrow">ЛИЧНЫЙ КАБИНЕТ</span>
-        {currentUser && mode === 'profile' ? (
-          <>
-            <h2>Здравствуйте, {currentUser.name}</h2>
-            <p>{currentUser.email}</p>
-            <div className="profile-orders">
-              <strong>История заказов ({userOrders.length})</strong>
-              {userOrders.length === 0 ? (
-                <p>Пока заказов нет. Оформленные заказы появятся здесь.</p>
-              ) : userOrders.map((order) => (
-                <article key={order.id}>
-                  <div>
-                    <strong>{order.id}</strong>
-                    <span>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</span>
-                  </div>
-                  <b>{formatPrice(order.total)}</b>
-                  <small>{order.items.map((item) => `${item.title} × ${item.quantity}`).join(', ')}</small>
-                  <small>Оплата при получении · {order.address}</small>
-                </article>
-              ))}
-            </div>
-            <button className="button button-outline profile-signout" type="button" onClick={signOut}>Выйти из аккаунта</button>
-          </>
-        ) : (
-          <>
-            <h2>{mode === 'register' ? 'Создать аккаунт' : 'Рады вас видеть'}</h2>
-            <p>{mode === 'register' ? 'Зарегистрируйтесь, чтобы сохранять историю заказов в этом браузере.' : 'Войдите, чтобы видеть историю оформленных заказов.'}</p>
-            <form onSubmit={handleSubmit}>
-              <label>Email<input name="email" type="email" autoComplete="email" required /></label>
-              {mode === 'register' && <label>Имя<input name="name" type="text" autoComplete="name" minLength={2} required /></label>}
-              <label>
-                Пароль
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                  minLength={8}
-                  required
-                />
-              </label>
-              {authError && <p className="form-error" role="alert">{authError}</p>}
-              <button className="button button-primary" type="submit" disabled={authBusy}>
-                {authBusy ? 'Подождите…' : mode === 'register' ? 'Зарегистрироваться' : 'Войти'} <Icon name="arrow" size={17} />
-              </button>
-            </form>
-            <button className="text-link auth-switch" type="button" onClick={switchMode}>
-              {mode === 'register' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+      <button className="close-button modal-close" type="button" aria-label="Закрыть" onClick={onClose}>
+        <Icon name="close" size={21} />
+      </button>
+      <span className="modal-icon"><Icon name="user" size={23} /></span>
+      <span className="eyebrow">ЛИЧНЫЙ КАБИНЕТ</span>
+      {currentUser && activeMode === 'profile' ? (
+        <>
+          <h2>Здравствуйте, {currentUser.name}</h2>
+          <p>{currentUser.email}</p>
+          <div className="profile-orders">
+            <strong>История заказов ({orders.length})</strong>
+            {ordersLoading && <p role="status">Загружаем заказы…</p>}
+            {ordersError && <p className="form-error" role="alert">{ordersError}</p>}
+            {!ordersLoading && !ordersError && orders.length === 0 && (
+              <p>Пока заказов нет. Оформленные заказы появятся здесь.</p>
+            )}
+            {orders.map((order) => (
+              <article key={order.id}>
+                <div className="profile-order-heading">
+                  <strong>Заказ {order.orderNumber}</strong>
+                  <time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</time>
+                </div>
+                <div className="profile-order-total">
+                  <span>{orderStatusLabels[order.status] ?? order.status}</span>
+                  <b>{formatPriceCents(order.totalCents)}</b>
+                </div>
+                <small>{order.items.map((item) => `${item.title} × ${item.quantity}`).join(', ')}</small>
+                <small>{order.paymentMethod} · {order.address}</small>
+              </article>
+            ))}
+          </div>
+          {authError && <p className="form-error" role="alert">{authError}</p>}
+          <button className="button button-outline profile-signout" type="button" onClick={signOut} disabled={authBusy}>
+            {authBusy ? 'Выходим…' : 'Выйти из аккаунта'}
+          </button>
+        </>
+      ) : (
+        <>
+          <h2>{mode === 'register' ? 'Создать аккаунт' : 'Рады вас видеть'}</h2>
+          <p>{mode === 'register' ? 'Создайте аккаунт, чтобы сохранять историю заказов.' : 'Войдите, чтобы просматривать профиль и историю заказов.'}</p>
+          {authLoading && <p role="status">Проверяем авторизацию…</p>}
+          <form onSubmit={handleSubmit}>
+            <label>Email<input name="email" type="email" autoComplete="email" required /></label>
+            {mode === 'register' && <label>Имя<input name="name" type="text" autoComplete="name" minLength={2} maxLength={120} required /></label>}
+            <label>
+              Пароль
+              <input
+                name="password"
+                type="password"
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                minLength={mode === 'register' ? 8 : 1}
+                maxLength={128}
+                required
+              />
+            </label>
+            {(authError || authLoadError) && <p className="form-error" role="alert">{authError || authLoadError}</p>}
+            <button className="button button-primary" type="submit" disabled={authBusy || authLoading}>
+              {authBusy ? 'Подождите…' : mode === 'register' ? 'Зарегистрироваться' : 'Войти'} <Icon name="arrow" size={17} />
             </button>
-            <small>Демо-режим: данные сохраняются только в этом браузере и не отправляются на сервер.</small>
-          </>
-        )}
-      </section>
+          </form>
+          <button className="text-link auth-switch" type="button" onClick={switchMode} disabled={authBusy}>
+            {mode === 'register' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+          </button>
+          <small>Аккаунт и заказы сохраняются на сервере. Пароль хранится в виде криптографического хеша.</small>
+        </>
+      )}
+    </section>
   )
 
   if (presentation === 'page') {

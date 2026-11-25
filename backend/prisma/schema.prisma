@@ -40,9 +40,34 @@ model Product {
   @@index([priceCents, active])
 }
 
+model User {
+  id           String        @id @default(cuid())
+  name         String        @db.VarChar(120)
+  email        String        @unique @db.VarChar(191)
+  passwordHash String        @db.VarChar(200)
+  sessions     UserSession[]
+  orders       Order[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique @db.Char(64)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Order {
   id            String      @id @default(cuid())
   orderNumber   String      @unique @db.VarChar(40)
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName  String      @db.VarChar(120)
   customerPhone String      @db.VarChar(30)
   address       String      @db.VarChar(250)
@@ -56,6 +81,7 @@ model Order {
 
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {

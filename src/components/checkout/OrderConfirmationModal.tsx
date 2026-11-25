@@ -1,9 +1,9 @@
-import { formatPrice } from '../../utils/formatPrice.ts'
+import { formatPriceCents } from '../../utils/formatPrice.ts'
 import { Icon } from '../ui/Icon.tsx'
-import type { DemoOrder } from '../../types.ts'
+import type { ApiOrder } from '../../api/client.ts'
 
 interface OrderConfirmationModalProps {
-  order: DemoOrder | null
+  order: ApiOrder | null
   onClose: () => void
 }
 
@@ -17,14 +17,14 @@ export function OrderConfirmationModal({ order, onClose }: OrderConfirmationModa
           <Icon name="close" size={21} />
         </button>
         <span className="modal-icon"><Icon name="check" size={23} /></span>
-        <span className="eyebrow">ЗАКАЗ СОХРАНЁН</span>
+        <span className="eyebrow">ЗАКАЗ ПРИНЯТ</span>
         <h2>Спасибо за заказ!</h2>
-        <p>Номер заказа: <strong>{order.id}</strong></p>
+        <p>Номер заказа: <strong>{order.orderNumber}</strong></p>
         <div className="checkout-summary">
           <span>К оплате при получении</span>
-          <strong>{formatPrice(order.total)}</strong>
+          <strong>{formatPriceCents(order.totalCents)}</strong>
         </div>
-        <small>Это демо-заказ, он сохранён только в вашем браузере и не отправлен продавцу.</small>
+        <small>Заказ сохранён в базе магазина. Если вы вошли в аккаунт, он появится в истории заказов.</small>
         <button className="button button-primary" type="button" onClick={onClose}>Продолжить покупки</button>
       </section>
     </div>

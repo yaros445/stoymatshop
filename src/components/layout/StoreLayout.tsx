@@ -4,7 +4,6 @@ import { CartDrawer } from '../cart/CartDrawer.tsx'
 import { CheckoutModal } from '../checkout/CheckoutModal.tsx'
 import { Footer } from './Footer.tsx'
 import { StoreHeader } from './StoreHeader.tsx'
-import { categories } from '../../data/categories.ts'
 import { useStore } from '../../app/useStore.ts'
 
 export function StoreLayout() {
@@ -17,11 +16,11 @@ export function StoreLayout() {
     changeQuantity,
     clearCart,
     currentUser,
-    demoData,
+    categories,
     dispatchFilters,
     favorites,
     filters,
-    setDemoData,
+    refreshCatalog,
   } = useStore()
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
@@ -79,12 +78,10 @@ export function StoreLayout() {
         cartCount={cartCount}
         cartTotalCents={cartTotalCents}
         currentUser={currentUser}
-        demoData={demoData}
         isOpen={checkoutOpen}
         onCartClear={clearCart}
         onClose={() => setCheckoutOpen(false)}
-        onDemoDataChange={setDemoData}
-        products={cartProducts}
+        onOrderCreated={() => { void refreshCatalog() }}
       />
     </div>
   )

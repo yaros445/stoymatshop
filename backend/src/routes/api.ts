@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { HttpError } from '../lib/http-error.js'
 import { createOrderSchema } from '../schemas/order.js'
+import { optionalAuth } from '../auth/session.js'
 
 export const apiRouter = Router()
 
@@ -86,7 +87,7 @@ apiRouter.get('/products', async (request, response) => {
   })
 })
 
-apiRouter.post('/orders', async (request, response) => {
+apiRouter.post('/orders', optionalAuth, async (request, response) => {
   const parsed = createOrderSchema.safeParse(request.body)
   if (!parsed.success) {
     response.status(400).json({
@@ -144,6 +145,7 @@ apiRouter.post('/orders', async (request, response) => {
     return transaction.order.create({
       data: {
         orderNumber,
+        userId: request.authUser?.id ?? null,
         customerName: input.customerName,
         customerPhone: input.customerPhone,
         address: input.address,

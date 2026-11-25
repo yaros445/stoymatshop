@@ -5,28 +5,29 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Slider from '@mui/material/Slider'
 import { ALL_BRANDS, ALL_CATEGORIES, BADGES, TABS } from '../../constants/filters.ts'
-import { categories } from '../../data/categories.ts'
-import { MAX_PRICE_CENTS, MIN_PRICE_CENTS, productBrands, products } from '../../data/products.ts'
 import { formatPriceCents } from '../../utils/formatPrice.ts'
 import { getImageUrl } from '../../utils/image.ts'
 import { pluralizeProducts } from '../../utils/pluralize.ts'
 import { Icon } from '../ui/Icon.tsx'
-import type { Cart } from '../../types.ts'
+import type { Cart, Category, Product } from '../../types.ts'
 import type { CatalogFilterAction } from '../../features/catalog/useCatalogFilters.ts'
 import type { Dispatch } from 'react'
-
-type CatalogProduct = (typeof products)[number]
 
 interface CatalogSectionProps {
   activeCategory: string
   activeTab: string
   brand: string
   cart: Cart
+  categories: Category[]
   dispatchFilters: Dispatch<CatalogFilterAction>
   favorites: number[]
-  filteredProducts: CatalogProduct[]
+  filteredProducts: Product[]
   inStockOnly: boolean
+  maxProductPriceCents: number
   maxPriceCents: number
+  minProductPriceCents: number
+  productBrands: string[]
+  totalProducts: number
   onAddToCart: (id: number) => void
   onResetFilters: () => void
   onToggleFavorite: (id: number) => void
@@ -38,23 +39,31 @@ export function CatalogSection({
   activeTab,
   brand,
   cart,
+  categories,
   dispatchFilters,
   favorites,
   filteredProducts,
   inStockOnly,
+  maxProductPriceCents,
   maxPriceCents,
+  minProductPriceCents,
+  productBrands,
+  totalProducts,
   onAddToCart,
   onResetFilters,
   onToggleFavorite,
   showFavorites,
 }: CatalogSectionProps) {
+  const sliderMin = Math.max(0, Math.floor(minProductPriceCents / 100) * 100)
+  const sliderMax = Math.max(maxProductPriceCents, sliderMin + 100)
+
   return (
     <section className="products-section section-space" id="catalog">
       <div className="container">
         <div className="section-heading product-heading">
           <div>
             <span className="eyebrow">ТОЛЬКО ПРОВЕРЕННОЕ</span>
-            <h2>{showFavorites ? 'Избранное' : activeCategory === ALL_CATEGORIES ? 'Выбор наших клиентов' : categories.find((category) => category.id === activeCategory)?.title}</h2>
+            <h2>{showFavorites ? 'Избранное' : activeCategory === ALL_CATEGORIES ? 'Выбор наших клиентов' : categories.find((category) => category.id === activeCategory)?.title ?? 'Каталог товаров'}</h2>
           </div>
           <div className="product-tabs">
             <button className={activeTab === TABS.ALL ? 'is-selected' : ''} type="button" onClick={() => dispatchFilters({ type: 'setTab', value: TABS.ALL })}>Все товары</button>
@@ -75,8 +84,8 @@ export function CatalogSection({
           <label className="price-filter">
             До {formatPriceCents(maxPriceCents)}
             <Slider
-              min={Math.max(0, Math.floor(MIN_PRICE_CENTS / 100) * 100)}
-              max={MAX_PRICE_CENTS}
+              min={sliderMin}
+              max={sliderMax}
               step={100}
               value={maxPriceCents}
               onChange={(_, value) => dispatchFilters({ type: 'setMaxPrice', value: Number(value) })}
@@ -152,7 +161,7 @@ export function CatalogSection({
           </div>
         )}
         <div className="catalog-footer">
-          <span>Показано {pluralizeProducts(filteredProducts.length)} из {pluralizeProducts(products.length)}</span>
+          <span>Показано {pluralizeProducts(filteredProducts.length)} из {pluralizeProducts(totalProducts)}</span>
           <Button className="button button-outline" variant="outlined" onClick={onResetFilters}>Смотреть весь каталог <Icon name="arrow" size={17} /></Button>
         </div>
       </div>

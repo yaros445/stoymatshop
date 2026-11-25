@@ -5,22 +5,26 @@ import { useStore } from '../app/useStore.ts'
 
 export function AccountPage() {
   const navigate = useNavigate()
-  const { currentUser, demoData, setDemoData } = useStore()
+  const { authLoadError, authLoading, currentUser, signIn, signOut, signUp } = useStore()
 
   return (
     <>
       <PageHeading
         eyebrow="ВАШ ПРОФИЛЬ"
         title="Личный кабинет"
-        description="Войдите или создайте аккаунт, чтобы сохранять историю оформленных заказов."
+        description="Входите в аккаунт, отслеживайте и просматривайте историю заказов."
       />
       <AccountModal
-        demoData={demoData}
+        authLoadError={authLoadError}
+        authLoading={authLoading}
+        currentUser={currentUser}
         initialMode={currentUser ? 'profile' : 'login'}
         isOpen
         presentation="page"
         onClose={() => navigate('/catalog')}
-        onDemoDataChange={setDemoData}
+        onSignIn={signIn}
+        onSignOut={signOut}
+        onSignUp={signUp}
       />
     </>
   )

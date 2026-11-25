@@ -33,7 +33,11 @@ The API listens on `http://localhost:3001` by default. Seed data is demo catalog
 - `GET /api/health` — verifies the API and database connection.
 - `GET /api/categories` — lists categories and active product counts.
 - `GET /api/products` — lists active products. Optional query parameters: `search`, `categoryId`, `brand`, `maxPriceCents`, `inStock=true`, `page`, and `pageSize` (maximum 100). Returns `data` and pagination metadata.
-- `POST /api/orders` — creates an anonymous delivery order. Send customer name, phone, address, optional comment, and product IDs with quantities. Prices are always read from MySQL; client-provided prices are rejected. Stock is checked and decremented transactionally.
+- `POST /api/auth/register` and `POST /api/auth/login` — create an account or start a session. Sessions use an HttpOnly cookie; passwords are stored as scrypt hashes.
+- `GET /api/auth/me` — returns the current account, or `null` when signed out.
+- `POST /api/auth/logout` — revokes the current session.
+- `GET /api/auth/orders` — returns the signed-in account's order history.
+- `POST /api/orders` — creates a delivery order for either a guest or signed-in customer. Send customer name, phone, address, optional comment, and product IDs with quantities. Prices are always read from MySQL; client-provided prices are rejected. Stock is checked and decremented transactionally. Signed-in orders are linked to that account.
 
 Example request:
 
@@ -47,7 +51,7 @@ Example request:
 }
 ```
 
-Orders are anonymous for now. There is deliberately no account/login API or order lookup endpoint until authentication and authorization requirements are defined. The current frontend still uses local demo storage and is not connected to this API.
+Order history is only available to the authenticated owner. There is no public order lookup endpoint or password reset flow yet. Set `CLIENT_ORIGIN` to the exact frontend origin when hosting the API separately.
 
 ## Development checks
 

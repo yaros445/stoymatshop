@@ -39,6 +39,17 @@ test('applies visible filters to favorites', () => {
   )
 })
 
+test('search uses the category names loaded from the API', () => {
+  const apiCategories = categories.map((category) => category.id === 'dry-mixes'
+    ? { ...category, title: 'Отделочные смеси' }
+    : category)
+
+  assert.deepEqual(
+    filterProducts(products, { ...filters, search: 'отделочные смеси' }, apiCategories).map(({ id }) => id),
+    [1],
+  )
+})
+
 test('calculates plaster with non-negative dimensions and reserve', () => {
   assert.deepEqual(calculatePlaster(-6, -2.7), { area: 0, bags: 0 })
   const result = calculatePlaster(6, 2.7)
