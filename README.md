@@ -19,6 +19,10 @@ npm run dev
 
 Для production-сборки выполните `npm run build`.
 
+## Backend API
+
+Отдельный Express + TypeScript backend с Prisma и MySQL находится в [`backend/`](./backend/README.md). См. его README для настройки базы, миграций, тестовых данных и запуска API. Клиент пока не подключён к backend и продолжает использовать демо-данные браузера.
+
 ## Проверки
 
 ```sh
